@@ -20,7 +20,7 @@ import os
 # Add parent directory to path to import utils
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from core.electron_scattering import get_and_save_nuL_scatter_electron_El_costheta_from_csv
+from core.decay_and_scattering import get_and_save_nuL_scatter_electron_El_costheta_from_csv
 
 
 def main():

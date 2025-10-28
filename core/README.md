@@ -13,7 +13,7 @@ core/
 ├── decay_distributions.py              # Decay kinematics (CMS & lab frames)
 ├── spectrum_utils.py                   # Integration, interpolation, file I/O
 ├── neutrino_electron_scattering.py     # ν-e scattering cross sections & spectra
-├── electron_scattering.py              # RHN decay → ν scattering with azimuthal sampling
+├── decay_and_scattering.py             # RHN decay → ν scattering with azimuthal sampling
 ├── sampling.py                         # Monte Carlo rejection sampling algorithms
 └── tools.py                            # Utility tools (timer decorator, debugging)
 ```
@@ -35,7 +35,7 @@ from core.transformations import cms_to_lab, transform_phi_to_theta
 from core.decay_distributions import diff_El_costheta_lab
 from core.spectrum_utils import integrateSpectrum2D
 from core.neutrino_electron_scattering import scatter_electron_spectrum, mswlma
-from core.electron_scattering import get_and_save_nuL_scatter_electron_El_costheta
+from core.decay_and_scattering import get_and_save_nuL_scatter_electron_El_costheta
 from core.sampling import rejection_sampling_2Dfunc, getNuLEAndAngleBySampling
 from core.tools import timer
 ```

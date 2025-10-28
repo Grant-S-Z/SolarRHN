@@ -6,8 +6,21 @@ for neutrinos from RHN decay.
 """
 
 import math
+import numpy as np
 from .constants import m_electron
 from .transformations import cms_to_lab, lab_to_cms
+
+# Try to import numba for JIT compilation
+try:
+    from numba import jit
+    HAS_NUMBA = True
+except ImportError:
+    HAS_NUMBA = False
+    # Dummy decorator if numba is not available
+    def jit(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
 
 
 def diff_lambda(x, y, z):
@@ -110,6 +123,14 @@ def diff_El_costheta_lab(Elp, costhetap, MH, EH):
     float
         Differential distribution dN/dEl/dcostheta in lab frame
     """
+    if HAS_NUMBA:
+        return _diff_El_costheta_lab_numba(Elp, costhetap, MH, EH, m_electron)
+    else:
+        return _diff_El_costheta_lab_python(Elp, costhetap, MH, EH)
+
+
+def _diff_El_costheta_lab_python(Elp, costhetap, MH, EH):
+    """Python fallback version."""
     if costhetap > 1.0 or costhetap < -1.0:
         return 0.0
 
@@ -125,6 +146,130 @@ def diff_El_costheta_lab(Elp, costhetap, MH, EH):
     El_Edelta, costheta_Edelta = lab_to_cms(Elp + delta_El, costhetap, MH, EH)
     El_Tdelta, costheta_Tdelta = lab_to_cms(
         Elp, costhetap + delta_costheta, MH, EH)
+
+    pE_pEp = (El_Edelta - El) / delta_El
+    pE_ptp = (El_Tdelta - El) / delta_costheta
+    pt_pEp = (costheta_Edelta - costheta) / delta_El
+    pt_ptp = (costheta_Tdelta - costheta) / delta_costheta
+
+    Jacob = abs(pE_pEp * pt_ptp - pE_ptp * pt_pEp)
+    return diff_cms * Jacob
+
+
+@jit(nopython=True, cache=True)
+def _cms_to_lab_numba(El, costheta, MH, EH):
+    """Numba-optimized CMS to lab transformation."""
+    beta = math.sqrt(EH * EH - MH * MH) / EH
+    gamma_v = 1.0 / math.sqrt(1.0 - beta * beta)
+    beta_l = 1.0
+    sintheta = math.sqrt(1.0 - costheta * costheta)
+    vy_l = beta_l * sintheta
+    vx_l = beta_l * costheta
+
+    costheta_p = math.sqrt(
+        pow(gamma_v * (vx_l + beta), 2.0)
+        / (pow(gamma_v * (vx_l + beta), 2.0) + vy_l * vy_l)
+    )
+    if vx_l + beta < 0.0:
+        costheta_p = -1.0 * costheta_p
+
+    El_p = gamma_v * (El + beta * El * beta_l * costheta)
+
+    return El_p, costheta_p
+
+
+@jit(nopython=True, cache=True)
+def _lab_to_cms_numba(El, costheta, MH, EH):
+    """Numba-optimized lab to CMS transformation."""
+    beta = math.sqrt(EH * EH - MH * MH) / EH
+    gamma_v = 1.0 / math.sqrt(1.0 - beta * beta)
+    beta_l = 1.0
+    sintheta = math.sqrt(1.0 - costheta * costheta)
+    vy_l = beta_l * sintheta
+    vx_l = beta_l * costheta
+
+    costheta_p = math.sqrt(
+        pow(gamma_v * (vx_l - beta), 2.0)
+        / (pow(gamma_v * (vx_l - beta), 2.0) + vy_l * vy_l)
+    )
+    if vx_l - beta < 0.0:
+        costheta_p = -1.0 * costheta_p
+
+    El_p = gamma_v * (El - beta * El * beta_l * costheta)
+
+    return El_p, costheta_p
+
+
+@jit(nopython=True, cache=True)
+def _diff_lambda_numba(x, y, z):
+    """Numba-optimized lambda function."""
+    return x * x + y * y + z * z - 2.0 * (x * y + y * z + z * x)
+
+
+@jit(nopython=True, cache=True)
+def _diff_El_costheta_cms_numba(El, costheta, MH, EH, m_e):
+    """Numba-optimized CMS distribution."""
+    if costheta > 1.0 or costheta < -1.0:
+        return 0.0
+
+    beta = math.sqrt(EH * EH - MH * MH) / EH
+    El_l, costheta_l = _cms_to_lab_numba(El, costheta, MH, EH)
+
+    El_max = (MH * MH - 4.0 * m_e * m_e) / (2.0 * MH)
+    costheta_min = (1.0 / beta) * ((MH / El_max) * (1.0 - (EH - El_l) / EH) - 1.0)
+    
+    if El >= El_max or costheta <= costheta_min:
+        return 0.0
+
+    Eb = El / MH
+    mi = m_e / MH
+    mj = m_e / MH
+    mb = 0.0
+    Q2 = 1.0 - 2.0 * Eb + mb * mb
+    
+    if abs(Q2) < 1e-6:
+        return 0.0
+
+    lambda_ij = _diff_lambda_numba(1.0, mi * mi / Q2, mj * mj / Q2)
+    if lambda_ij <= 0:
+        return 0.0
+    
+    lambda_Qb = _diff_lambda_numba(1.0, Q2, mb * mb)
+    if lambda_Qb <= 0:
+        return 0.0
+
+    Aij = pow(lambda_ij, 1.5)
+    Bij = (
+        2.0 * pow(lambda_ij, 0.5) *
+        (1.0 + (mi * mi + mj * mj) / Q2 - 2.0 * pow((mi * mi - mj * mj) / Q2, 2.0))
+    )
+    
+    f1 = math.sqrt(lambda_Qb) * (
+        2.0 * Q2 * (1 + mb * mb - Q2) * Aij +
+        (pow(1 - mb * mb, 2.0) - Q2 * Q2) * Bij
+    )
+    fs = lambda_Qb * (2.0 * Q2 * Aij - (1.0 - mb * mb - Q2) * Bij)
+    zeta = 1.0
+
+    return f1 + zeta * beta * costheta * fs
+
+
+@jit(nopython=True, cache=True)
+def _diff_El_costheta_lab_numba(Elp, costhetap, MH, EH, m_e):
+    """Numba-optimized lab frame distribution."""
+    if costhetap > 1.0 or costhetap < -1.0:
+        return 0.0
+
+    El, costheta = _lab_to_cms_numba(Elp, costhetap, MH, EH)
+    diff_cms = _diff_El_costheta_cms_numba(El, costheta, MH, EH, m_e)
+
+    delta_El = 1e-6
+    delta_costheta = 1e-6
+    if costhetap > 1.0 - 1e-4:
+        delta_costheta = -1e-6
+
+    El_Edelta, costheta_Edelta = _lab_to_cms_numba(Elp + delta_El, costhetap, MH, EH)
+    El_Tdelta, costheta_Tdelta = _lab_to_cms_numba(Elp, costhetap + delta_costheta, MH, EH)
 
     pE_pEp = (El_Edelta - El) / delta_El
     pE_ptp = (El_Tdelta - El) / delta_costheta
@@ -235,6 +380,7 @@ def diff_Eee(Eee, MH, EH):
 
 
 __all__ = [
+    'HAS_NUMBA',
     'diff_lambda',
     'diff_El_costheta_cms',
     'diff_El_costheta_lab',

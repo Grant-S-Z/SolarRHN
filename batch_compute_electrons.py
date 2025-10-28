@@ -20,7 +20,7 @@ import os
 # Add parent directory to path to import utils
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from utils import batch_compute_electrons_from_csv, list_neutrino_csv_files
+from backup.utils import batch_compute_electrons_from_csv, list_neutrino_csv_files
 
 
 def main():

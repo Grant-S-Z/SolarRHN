@@ -11,7 +11,7 @@ plots_grid_scan/
 plots_original/
 
 # Data directories
-DecayData/
+backup/
 output/
 test_output/
 

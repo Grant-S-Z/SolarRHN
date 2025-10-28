@@ -73,7 +73,7 @@ def batch_compute_electrons_from_csv(directory='./output/', N_int_local=100000, 
     list of dict
         Results for each file processed
     """
-    from core.electron_scattering import get_and_save_nuL_scatter_electron_El_costheta_from_csv
+    from core.decay_and_scattering import get_and_save_nuL_scatter_electron_El_costheta_from_csv
     
     files = list_neutrino_csv_files(directory)
     
@@ -171,7 +171,7 @@ def process_single_parameter_set(args):
     dict
         Summary statistics for this parameter set
     """
-    from core.electron_scattering import (
+    from core.decay_and_scattering import (
         get_and_save_nuL_El_costheta_decay_in_flight,
         get_and_save_nuL_scatter_electron_El_costheta
     )

@@ -1,25 +1,18 @@
 """
 Core physics modules for Solar RHN simulation.
 
-This package contains modular components for:
-- Physical constants
-- RHN properties and decay rates
-- Coordinate transformations
-- Decay distributions
-- Spectrum processing
-- Neutrino-electron scattering
-- Electron scattering and angle mapping
-- Monte Carlo sampling algorithms
-- Utility tools (timing, debugging)
+This package contains all the physics calculations and utilities needed
+for the RHN decay and neutrino scattering simulations.
 """
 
+# Import all public functions from submodules
 from .constants import *
 from .rhn_physics import *
 from .transformations import *
 from .decay_distributions import *
 from .spectrum_utils import *
 from .neutrino_electron_scattering import *
-from .electron_scattering import *
+from .decay_and_scattering import *
 from .sampling import *
 from .tools import *
 

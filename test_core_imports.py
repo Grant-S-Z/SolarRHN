@@ -65,16 +65,16 @@ def test_imports():
         print(f"   ✗ Failed to import spectrum_utils: {e}")
         return False
     
-    # Test 7: Import electron scattering
-    print("\n7. Testing electron_scattering module...")
+    # Test 7: Import decay_and_scattering module
+    print("\n7. Testing decay_and_scattering module...")
     try:
-        from core.electron_scattering import (
+        from core.decay_and_scattering import (
             getNulEAndAngleFromRHNDecay,
             get_and_save_nuL_El_costheta_decay_in_flight
         )
-        print("   ✓ Electron scattering functions imported")
+        print("   ✓ Decay and scattering functions imported")
     except Exception as e:
-        print(f"   ✗ Failed to import electron_scattering: {e}")
+        print(f"   ✗ Failed to import decay_and_scattering: {e}")
         return False
     
     # Test 8: Import neutrino-electron scattering module
