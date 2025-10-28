@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+core/__pycache__/
+.vscode/
+.DS_Store
+
+# Plot directories
+plots/
+plots_*/
+plots_grid_scan/
+plots_original/
+
+# Data directories
+DecayData/
+output/
+test_output/
+
+# Solar
+solar/
+
+# Paper
+paper/
