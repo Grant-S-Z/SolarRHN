@@ -11,6 +11,7 @@ including:
 All constants are imported from the constants module.
 """
 
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from .constants import (
@@ -71,7 +72,7 @@ def cal_costheta(T, q):
     float or array
         cos(θ_scatter)
     """
-    return np.sqrt((T * (0.511 + q) * (0.511 + q)) / ((T + 2 * 0.511) * q * q))
+    return math.sqrt((T * (0.511 + q) * (0.511 + q)) / ((T + 2 * 0.511) * q * q))
 
 
 def mswlma(energy):
@@ -167,8 +168,9 @@ def _scatter_core_numba(centers, flux, bw, Nint, n_energy_bins, n_angle_bins,
             event_in_bin = event * Tmax / Nint * bw
             
             # Calculate scattering angle
-            cosine = np.sqrt((T * (_me + ienergy) * (_me + ienergy)) / ((T + 2 * _me) * ienergy * ienergy))
-            rad = _pi - np.arccos(cosine)
+            cosine = math.sqrt((T * (_me + ienergy) * (_me + ienergy)) / ((T + 2 * _me) * ienergy * ienergy))
+            rad = _pi - math.acos(cosine)
+            # rad = math.acos(cosine)
             
             # === BILINEAR BINNING: Distribute event to 4 neighboring bins ===
             # Find bin indices
@@ -330,6 +332,9 @@ def scatter_electron_spectrum(energy, flux, *, energy_centers=None, bin_width_lo
     - MSW flavor oscillations (if enabled)
     - Integration over recoil kinematics
     
+    Returns BOTH angle-space (rad) and cosθ-space distributions to avoid
+    binning artifacts when converting between the two representations.
+    
     The function is backwards compatible: if only (energy, flux) are provided,
     it treats `energy` as the input energy grid. To support arbitrary binning,
     pass `energy_centers` explicitly.
@@ -355,16 +360,22 @@ def scatter_electron_spectrum(energy, flux, *, energy_centers=None, bin_width_lo
 
     Returns
     -------
-    spectrum_2d : ndarray
-        2D histogram (n_energy_bins × n_angle_bins) of electron events
+    spectrum_2d_rad : ndarray
+        2D histogram (n_energy_bins × n_angle_bins) in angle space (rad)
+    spectrum_2d_costheta : ndarray
+        2D histogram (n_energy_bins × n_angle_bins) in cosθ space
     spectrum_energy : ndarray
-        1D energy projection (sum over angles)
-    spectrum_angle : ndarray
-        1D angular projection (sum over energies)
+        1D energy projection (same for both representations)
+    spectrum_angle_rad : ndarray
+        1D angular projection in rad space
+    spectrum_angle_costheta : ndarray
+        1D angular projection in cosθ space (with Jacobian weighting)
     energy_bins : ndarray
         Energy bin edges
-    angle_bins : ndarray
-        Angular bin edges (radians)
+    angle_bins_rad : ndarray
+        Angular bin edges in rad (0 to π)
+    angle_bins_costheta : ndarray
+        Angular bin edges in cosθ space (1 to -1)
         
     Notes
     -----
@@ -372,14 +383,19 @@ def scatter_electron_spectrum(energy, flux, *, energy_centers=None, bin_width_lo
     1. Loop over incoming neutrino energies
     2. For each energy, integrate over recoil electron energies T ∈ [0, T_max]
     3. Compute differential cross section dσ/dT
-    4. Convert to scattering angle and bin in (E, θ) space
+    4. Convert to scattering angle and bin in (E, θ) space (rad)
+    5. Transform to cosθ space with Jacobian |sin(θ)|
     
     The total event rate includes:
     - Cross section × number of target electrons × flux × bin width × runtime
     
+    The cosθ distribution is computed from rad distribution using:
+    - Jacobian factor: |d(cosθ)/dθ| = |sin(θ)|
+    - Normalization to preserve total flux
+    
     Performance:
-    - With Numba JIT: ~5-10x faster
-    - Without Numba: Standard NumPy implementation
+    - With Numba JIT: ~5-10x faster for rad computation
+    - Additional ~10ms for cosθ conversion (negligible)
     """
     # Determine parameters with fallbacks
     if energy_centers is None:
@@ -398,33 +414,70 @@ def scatter_electron_spectrum(energy, flux, *, energy_centers=None, bin_width_lo
         use_numba = False
 
     total_flux = np.sum(flux) * bw
-    if use_numba and HAS_NUMBA:
-        print(f"Total incoming neutrino flux: {total_flux:.6e} (using Numba JIT)")
-    else:
-        print(f"Total incoming neutrino flux: {total_flux:.6e}")
+    print(f"Total incoming neutrino flux: {total_flux:.4e}")
 
     # Define output energy and angle bins
     n_energy_bins = 100
     energy_bins = np.linspace(0, max_energy, n_energy_bins + 1)
 
-    n_angle_bins = 50
-    angle_bins = np.linspace(0, pi, n_angle_bins + 1)
+    # Define angle bins - use uniform in rad space (like C++ original)
+    n_angle_bins = 200  # Increased from 100 to further reduce binning artifacts
+    angle_bins_rad = np.linspace(0, pi, n_angle_bins + 1)
+    
+    # Also define cosθ bins for second output
+    angle_bins_costheta = np.linspace(1, -1, n_angle_bins + 1)  # From 1 to -1
 
     # Choose implementation
     osci_on = (osci_mode == 1)
     
+    # First compute in rad space (like C++ original)
     if use_numba and HAS_NUMBA:
-        spectrum_2d, spectrum_energy, spectrum_angle = _scatter_core_numba(
+        spectrum_2d_rad, spectrum_energy, spectrum_angle_rad = _scatter_core_numba(
             centers, flux, bw, Nint, n_energy_bins, n_angle_bins,
-            energy_bins, angle_bins, osci_on
+            energy_bins, angle_bins_rad, osci_on
         )
     else:
-        spectrum_2d, spectrum_energy, spectrum_angle = _scatter_core_numpy(
+        spectrum_2d_rad, spectrum_energy, spectrum_angle_rad = _scatter_core_numpy(
             centers, flux, bw, Nint, n_energy_bins, n_angle_bins,
-            energy_bins, angle_bins, osci_on
+            energy_bins, angle_bins_rad, osci_on
         )
-
-    return spectrum_2d, spectrum_energy, spectrum_angle, energy_bins, angle_bins
+    
+    # Convert to cosθ space with proper Jacobian weighting
+    spectrum_2d_costheta = np.zeros((n_energy_bins, n_angle_bins))
+    spectrum_angle_costheta = np.zeros(n_angle_bins)
+    
+    # Compute bin centers
+    rad_centers = 0.5 * (angle_bins_rad[:-1] + angle_bins_rad[1:])
+    
+    # Map from rad to cosθ with Jacobian |d(cosθ)/dθ| = |sin(θ)|
+    for i_rad in range(n_angle_bins):
+        theta = rad_centers[i_rad]
+        costheta = np.cos(theta)
+        
+        # Find corresponding cosθ bin (note: angle_bins_costheta is descending)
+        i_costheta = np.searchsorted(-angle_bins_costheta[::-1], -costheta) - 1
+        i_costheta = np.clip(i_costheta, 0, n_angle_bins - 1)
+        
+        # Jacobian weight: |d(cosθ)/dθ| = |sin(θ)|
+        jacobian = abs(np.sin(theta))
+        
+        # Distribute with Jacobian weight
+        for i_e in range(n_energy_bins):
+            spectrum_2d_costheta[i_e, i_costheta] += spectrum_2d_rad[i_e, i_rad] * jacobian
+        
+        spectrum_angle_costheta[i_costheta] += spectrum_angle_rad[i_rad] * jacobian
+    
+    # Normalize cosθ distribution to match total flux
+    total_rad = np.sum(spectrum_2d_rad)
+    total_costheta = np.sum(spectrum_2d_costheta)
+    if total_costheta > 0:
+        spectrum_2d_costheta *= (total_rad / total_costheta)
+        spectrum_angle_costheta *= (np.sum(spectrum_angle_rad) / np.sum(spectrum_angle_costheta))
+    
+    # Return both distributions
+    return (spectrum_2d_rad, spectrum_2d_costheta, spectrum_energy,
+            spectrum_angle_rad, spectrum_angle_costheta,
+            energy_bins, angle_bins_rad, angle_bins_costheta)
 
 
 def read_flux_data(filename):
@@ -511,19 +564,21 @@ __all__ = [
 if __name__ == "__main__":
     # Example usage
     energy, flux = read_flux_data('./DecayData/DecayDetectorCount_U0.01_M2.0.txt')
-    spectrum_2d, spectrum_energy, spectrum_angle, energy_bins, angle_bins = scatter_electron_spectrum(energy, flux)
+    (spectrum_2d_rad, spectrum_2d_costheta, spectrum_energy,
+     spectrum_angle_rad, spectrum_angle_costheta,
+     energy_bins, angle_bins_rad, angle_bins_costheta) = scatter_electron_spectrum(energy, flux)
 
     plt.figure()
-    plt.plot(energy_bins, spectrum_energy)
+    plt.plot(energy_bins[:-1], spectrum_energy)
     plt.savefig('solar_energy.pdf')
     
     plt.figure()
-    plt.plot(angle_bins, spectrum_angle)
+    plt.plot(angle_bins_rad[:-1], spectrum_angle_rad, label='rad space')
+    plt.plot(np.arccos(angle_bins_costheta[:-1]), spectrum_angle_costheta, label='cosθ space', linestyle='--')
+    plt.legend()
     plt.savefig('solar_angle.pdf')
 
-    print(spectrum_2d.shape[0])
-    print(spectrum_2d.shape[1])
-    energy_bins = np.linspace(0, 16, spectrum_2d.shape[0])
-    angle_bins = np.linspace(0, pi, spectrum_2d.shape[1])
-    _, _ = plot_2d_distribution_contour(spectrum_2d, energy_bins, angle_bins)
+    print(f"2D spectrum shape (rad): {spectrum_2d_rad.shape}")
+    print(f"2D spectrum shape (cosθ): {spectrum_2d_costheta.shape}")
+    _, _ = plot_2d_distribution_contour(spectrum_2d_rad, energy_bins, angle_bins_rad)
     plt.savefig('solar.pdf')

@@ -42,7 +42,7 @@ def timer(func):
         value = func(*args, **kwargs)
         end_time = time()
         run_time = end_time - start_time
-        print(f"func: {func.__name__!r} took: {run_time:.4f} secs")
+        print(f"func: {func.__name__!r} took: {run_time:.4f} secs\n")
         return value
     return wrapper_timer
 

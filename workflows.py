@@ -204,36 +204,36 @@ def process_single_parameter_set(args):
     )
     
     # Step 2: Plot neutrino 2D distribution
-    print("Step 2: Plotting neutrino 2D distribution...")
+    print("\nStep 2: Plotting neutrino 2D distribution...")
     plot_El_costheta_map(
         diff_El_costheta_nu, 
         param_dir, 
-        filename=f"neutrino_2d_U2_{U2:.2e}_MH_{MH:.1f}.pdf",
+        filename=f"neutrino_2d_U2_{U2:.2e}_MH_{MH:.1f}.png",
         title_prefix=f"Neutrino: U²={U2:.2e}, M={MH:.1f} MeV"
     )
     
     # Step 3: Plot neutrino 1D energy distribution
-    print("Step 3: Plotting neutrino 1D energy distribution...")
+    print("\nStep 3: Plotting neutrino 1D energy distribution...")
     plot_1d_energy_distribution(
         diff_El_nu,
         param_dir,
-        filename=f"neutrino_energy_1d_U2_{U2:.2e}_MH_{MH:.1f}.pdf",
+        filename=f"neutrino_energy_1d_U2_{U2:.2e}_MH_{MH:.1f}.png",
         title_prefix=f"Neutrino Energy: U²={U2:.2e}, M={MH:.1f} MeV",
         ylabel="Flux (MeV⁻¹ cm⁻² s⁻¹)"
     )
     
     # Step 4: Plot neutrino 1D angular distribution
-    print("Step 4: Plotting neutrino 1D angular distribution...")
+    print("\nStep 4: Plotting neutrino 1D angular distribution...")
     plot_1d_angle_distribution(
         diff_costheta_nu,
         param_dir,
-        filename=f"neutrino_angle_1d_U2_{U2:.2e}_MH_{MH:.1f}.pdf",
+        filename=f"neutrino_angle_1d_U2_{U2:.2e}_MH_{MH:.1f}.png",
         title_prefix=f"Neutrino Angular: U²={U2:.2e}, M={MH:.1f} MeV",
         ylabel="Flux (sr⁻¹ cm⁻² s⁻¹)"
     )
     
     # Step 5: Compute scattered electron distributions
-    print("Step 5: Computing scattered electron distributions...")
+    print("\nStep 5: Computing scattered electron distributions...")
     try:
         electron_2d, e_bins, costheta_lab_bins, _ = get_and_save_nuL_scatter_electron_El_costheta(
             diff_El_costheta_nu, 
@@ -254,16 +254,16 @@ def process_single_parameter_set(args):
         diff_El_costheta_electron[:, :, 2] = electron_2d
         
         # Step 6: Plot electron 2D distribution
-        print("Step 6: Plotting electron 2D distribution...")
+        print("\nStep 6: Plotting electron 2D distribution...")
         plot_El_costheta_map(
             diff_El_costheta_electron,
             param_dir,
-            filename=f"electron_2d_U2_{U2:.2e}_MH_{MH:.1f}.pdf",
+            filename=f"electron_2d_U2_{U2:.2e}_MH_{MH:.1f}.png",
             title_prefix=f"Electron: U²={U2:.2e}, M={MH:.1f} MeV"
         )
         
         # Step 7: Plot electron 1D energy distribution (integrate over angle)
-        print("Step 7: Plotting electron 1D energy distribution...")
+        print("\nStep 7: Plotting electron 1D energy distribution...")
         diff_El_electron = np.zeros((nE_e, 2))
         diff_El_electron[:, 0] = e_centers
         # Integrate over angle bins (approximate with simple sum × bin width)
@@ -280,7 +280,7 @@ def process_single_parameter_set(args):
         )
         
         # Step 8: Plot electron 1D angular distribution (integrate over energy)
-        print("Step 8: Plotting electron 1D angular distribution...")
+        print("\nStep 8: Plotting electron 1D angular distribution...")
         diff_costheta_electron = np.zeros((nA_e, 2))
         diff_costheta_electron[:, 0] = costheta_centers
         # Integrate over energy bins
@@ -291,10 +291,119 @@ def process_single_parameter_set(args):
         plot_1d_angle_distribution(
             diff_costheta_electron,
             param_dir,
-            filename=f"electron_angle_1d_U2_{U2:.2e}_MH_{MH:.1f}.pdf",
+            filename=f"electron_angle_1d_U2_{U2:.2e}_MH_{MH:.1f}.png",
             title_prefix=f"Electron Angular: U²={U2:.2e}, M={MH:.1f} MeV",
             ylabel="Event rate (sr⁻¹)"
         )
+        
+        # Step 9: Compute collimated beam comparison
+        print("\nStep 9: Computing collimated beam comparison...")
+        try:
+            from core.decay_and_scattering import get_and_save_nuL_scatter_electron_El_costheta
+            from core.spectrum_utils import integrateSpectrum
+            import matplotlib.pyplot as plt
+            
+            # Get total neutrino flux for normalization
+            total_nu_flux = integrateSpectrum(diff_El_nu)
+            
+            # Create collimated beam neutrino distribution
+            # Same energy bins as RHN decay, but all flux in forward direction (cosθ=1.0)
+            nE = diff_El_costheta_nu.shape[0]
+            nA = diff_El_costheta_nu.shape[1]
+            
+            # Get energy and angle arrays from original distribution
+            energy_centers = diff_El_costheta_nu[:, 0, 0]
+            costheta_centers_orig = diff_El_costheta_nu[0, :, 1]
+            
+            # Create new distribution with all flux in forward bin
+            diff_El_costheta_collimated = np.zeros((nE, nA, 3))
+            diff_El_costheta_collimated[:, :, 0] = energy_centers[:, None]
+            diff_El_costheta_collimated[:, :, 1] = costheta_centers_orig[None, :]
+            
+            # Put all flux in the most forward angle bin (highest cosθ)
+            forward_bin_idx = np.argmax(costheta_centers_orig)
+            
+            # Simply sum all angular contributions at each energy and put in forward bin
+            # diff_El_costheta_nu[:, :, 2] has shape (nE, nA) with dN/(dE·dΩ)
+            # Sum over angle axis to get total at each energy, then put in forward bin
+            for ie in range(nE):
+                # Sum all angular bins at this energy to get total flux
+                total_at_energy = np.sum(diff_El_costheta_nu[ie, :, 2])
+                # Put it all in the forward angular bin
+                diff_El_costheta_collimated[ie, forward_bin_idx, 2] = total_at_energy
+            
+            # Verify total flux matches (for debugging)
+            collimated_total = integrateSpectrum2D(diff_El_costheta_collimated)
+            print(f"  Total neutrino flux (RHN): {total_nu_flux:.6e}")
+            print(f"  Total neutrino flux (collimated): {collimated_total:.6e}")
+            print(f"  Ratio: {collimated_total/total_nu_flux:.6f}")
+            
+            # Scatter collimated beam
+            electron_2d_beam, e_bins_beam, costheta_lab_bins_beam, _ = get_and_save_nuL_scatter_electron_El_costheta(
+                diff_El_costheta_collimated, 
+                savepath=param_dir,  # Save to same directory
+                N_int_local=100000
+            )
+            
+            # Build diff_costheta format for beam electrons
+            costheta_beam_centers = 0.5 * (costheta_lab_bins_beam[:-1] + costheta_lab_bins_beam[1:])
+            nA_beam = len(costheta_beam_centers)
+            diff_costheta_beam = np.zeros((nA_beam, 2))
+            diff_costheta_beam[:, 0] = costheta_beam_centers
+            
+            # Integrate over energy
+            energy_widths_beam = np.diff(e_bins_beam)
+            for ia in range(nA_beam):
+                diff_costheta_beam[ia, 1] = np.sum(electron_2d_beam[:, ia] * energy_widths_beam)
+            
+            # Plot comparison side-by-side
+            fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+            
+            # Left: RHN decay electron angular distribution
+            ax = axes[0]
+            ax.plot(costheta_centers, diff_costheta_electron[:, 1], 'b-', linewidth=2, label='RHN decay')
+            ax.set_xlabel('cos(θ) (lab frame)', fontsize=12)
+            ax.set_ylabel('Event rate (sr⁻¹)', fontsize=12)
+            ax.set_title(f'RHN Decay: U²={U2:.2e}, M={MH:.1f} MeV', fontsize=13)
+            ax.grid(True, alpha=0.3)
+            ax.legend()
+            
+            # Right: Collimated beam electron angular distribution
+            ax = axes[1]
+            ax.plot(costheta_beam_centers, diff_costheta_beam[:, 1], 'r-', linewidth=2, label='Collimated beam')
+            ax.set_xlabel('cos(θ) (lab frame)', fontsize=12)
+            ax.set_ylabel('Event rate (sr⁻¹)', fontsize=12)
+            ax.set_title(f'Collimated Beam: Same Total Flux', fontsize=13)
+            ax.grid(True, alpha=0.3)
+            ax.legend()
+            
+            plt.tight_layout()
+            comparison_file = os.path.join(param_dir, f"comparison_rhn_vs_collimated_U2_{U2:.2e}_MH_{MH:.1f}.png")
+            plt.savefig(comparison_file, dpi=150, bbox_inches='tight')
+            plt.close()
+            
+            print(f"  Saved comparison plot: {comparison_file}")
+            
+            # Also plot both on same axis for direct comparison
+            fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+            ax.plot(costheta_centers, diff_costheta_electron[:, 1], 'b-', linewidth=2, label='RHN decay (extended source)')
+            ax.plot(costheta_beam_centers, diff_costheta_beam[:, 1], 'r--', linewidth=2, label='Collimated beam (forward)')
+            ax.set_xlabel('cos(θ) (lab frame)', fontsize=12)
+            ax.set_ylabel('Event rate (sr⁻¹)', fontsize=12)
+            ax.set_title(f'Scattered Electron Angular Distribution: U²={U2:.2e}, M={MH:.1f} MeV', fontsize=13)
+            ax.grid(True, alpha=0.3)
+            ax.legend(fontsize=11)
+            
+            overlay_file = os.path.join(param_dir, f"comparison_overlay_U2_{U2:.2e}_MH_{MH:.1f}.png")
+            plt.savefig(overlay_file, dpi=150, bbox_inches='tight')
+            plt.close()
+            
+            print(f"  Saved overlay comparison: {overlay_file}")
+            
+        except Exception as e:
+            import traceback
+            print(f"  Warning: Collimated beam comparison failed: {e}")
+            traceback.print_exc()
         
         electron_success = True
         

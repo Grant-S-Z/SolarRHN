@@ -5,7 +5,6 @@ Tests with a small parameter set for validation
 """
 
 import os
-import sys
 import numpy as np
 
 # Import the necessary functions from the new core package
@@ -21,8 +20,8 @@ if __name__ == "__main__":
     output_dir = "test_output"
     os.makedirs(output_dir, exist_ok=True)
     
-    # Define energy grid (coarser for faster testing)
-    energy = np.arange(0.0, 16.0, step=0.5)  # Coarser grid for speed
+    # Define energy grid
+    energy = np.arange(0.0, 16.0, step=0.2)
     
     print(f"Energy bins: {len(energy)}")
     print(f"Energy range: {energy[0]:.1f} - {energy[-1]:.1f} MeV")

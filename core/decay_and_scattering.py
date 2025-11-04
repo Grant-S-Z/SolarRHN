@@ -19,7 +19,7 @@ from ploter import (
     plot_1d_energy_distribution,
     plot_1d_angle_distribution
 )
-from .constants import distance_SE, m_electron, speed_of_light
+from .constants import distance_SE, speed_of_light
 from .rhn_physics import RHN_TauCM, getRHNSpectrum, findRatioForDistance, findDistanceForRatio, findRatioForDistanceSpectrum
 from .transformations import transform_phi_to_theta, transform_theta_to_phi
 from .decay_distributions import diff_El_costheta_lab, HAS_NUMBA as HAS_NUMBA_DECAY
@@ -487,18 +487,17 @@ def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='.
             costheta_arr,
         )
         print(
-            "decay inside earth orbit, distance = ",
+            "decay inside earth orbit, distance =",
             "%.2f" % (istep * 1.0 * distance_step / distance_SE),
-            " (SE), istep ",
+            "(SE), istep",
             istep + 1,
             "/",
             nsteps_earth,
-            ", decayed flux = ",
-            integrateSpectrum(diff_El_this),
-            integrateSpectrum(diff_costheta_this),
-            integrateSpectrum(diff_cosphi_this),
-            integrateSpectrum2D(diff_El_costheta_this),
-            integrateSpectrum2D(diff_El_cosphi_this)
+            f", decayed flux = {integrateSpectrum(diff_El_this):.2f}"
+            # integrateSpectrum(diff_costheta_this),
+            # integrateSpectrum(diff_cosphi_this),
+            # integrateSpectrum2D(diff_El_costheta_this),
+            # integrateSpectrum2D(diff_El_cosphi_this)
         )
         for ie in range(len(energy)):
             diff_El_decayed[ie][1] += diff_El_this[ie][1]
@@ -537,12 +536,11 @@ def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='.
         )
         ratio_decayed = findRatioForDistanceSpectrum(MH, spectrum_R, U2, distance_next)
         print(
-            "decay outside earth orbit, distance = ",
+            "decay outside, distance =",
             "%.2f" % (distance_start / distance_SE),
-            " (SE), fraction decayed: ",
+            "(SE), fraction decayed:",
             "%.3f" % ratio_decayed,
-            ", decayed flux = ",
-            integrateSpectrum(diff_El_this),
+            f", decayed flux = {integrateSpectrum(diff_El_this):.4f}",
         )
 
         distance_start = distance_next
@@ -723,10 +721,12 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
             flux_target = resample_bin_average(energy_src, flux_2d, energy_target)
             
             try:
-                s2d, s_e, s_a, e_b, a_b = scatter_electron_spectrum(
+                (s2d_rad, s2d_costheta, s_e, s_a_rad, s_a_costheta,
+                 e_b, a_b_rad, a_b_costheta) = scatter_electron_spectrum(
                     energy_target, flux_target, N_int_local=N_int_local
                 )
-                return ia, s2d, e_b, a_b
+                # Use rad-space spectrum for scattering angle calculations
+                return ia, s2d_rad, e_b, a_b_rad
             except Exception as e:
                 print(f"Warning: Angle {ia} failed: {e}")
                 return ia, None, None, None
@@ -748,7 +748,7 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
             if e_b is not None:
                 e_bins = e_b
                 a_bins = a_b
-            print(f"  Angle {ia+1}/{n_in_angles}, cosθ={costheta_nu[ia]:.3f} - completed")
+            print(f"Angle {ia+1}/{n_in_angles}, cosθ={costheta_nu[ia]:.3f} - completed")
     else:
         # Sequential processing (original)
         for ia in range(n_in_angles):
@@ -761,13 +761,18 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
             # Resample to target energy grid
             flux_target = resample_bin_average(energy_src, flux_2d, energy_target)
             
-            # Call scatter function
-            print(f"  Angle {ia+1}/{n_in_angles}, cosθ={costheta_nu[ia]:.3f}")
+            # Call scatter function (now returns 8 values)
+            print(f"  Angle {ia+1}/{n_in_angles}, cosθ={costheta_nu[ia]:.3f}.", end=' ')
             try:
-                s2d, s_e, s_a, e_bins, a_bins = scatter_electron_spectrum(
+                (s2d_rad, s2d_costheta, s_e, s_a_rad, s_a_costheta,
+                 e_b, a_b_rad, a_b_costheta) = scatter_electron_spectrum(
                     energy_target, flux_target, N_int_local=N_int_local
                 )
-                spectra_list.append(s2d)
+                # Use rad-space spectrum for scattering angle calculations
+                spectra_list.append(s2d_rad)
+                if e_bins is None:
+                    e_bins = e_b
+                    a_bins = a_b_rad  # Keep rad bins for angle mapping
             except Exception as e:
                 print(f"    Warning: Scatter failed: {e}")
                 spectra_list.append(None)

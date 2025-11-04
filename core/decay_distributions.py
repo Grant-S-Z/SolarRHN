@@ -6,7 +6,6 @@ for neutrinos from RHN decay.
 """
 
 import math
-import numpy as np
 from .constants import m_electron
 from .transformations import cms_to_lab, lab_to_cms
 
