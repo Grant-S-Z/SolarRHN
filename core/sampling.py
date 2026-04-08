@@ -12,6 +12,7 @@ Key Functions
 - getNuLEAndAngleBySampling: Generate neutrino samples from RHN decay
 """
 
+from .tools import timer
 import numpy as np
 
 
@@ -141,6 +142,7 @@ def generate_samples_from_spectrum(spectrum, num_samples):
         spectrum_generated[i][0] = x_value[i]
 
     # Check if spectrum is essentially zero
+    # You'd better do exposure integral before
     if np.sum(y_value) < 1e-6:
         return samples, spectrum_generated
     
@@ -200,7 +202,11 @@ def getMaximumValue2D(f, x_bounds, y_bounds, *args):
     return max(values)
 
 
-def getNuLEAndAngleBySampling(spectrum_R, MH, num_samples, costheta_bins):
+@timer
+def getNuLEAndAngleBySampling(spectrum_R: np.ndarray, 
+                              MH: float, 
+                              num_samples: int, 
+                              costheta_bins: np.ndarray = np.linspace(-1, 1, 201)) -> tuple:
     """Generate neutrino energy and angle samples from RHN decay spectrum.
     
     This function uses a two-stage sampling approach:
@@ -281,7 +287,7 @@ def getNuLEAndAngleBySampling(spectrum_R, MH, num_samples, costheta_bins):
                 maxDiff = maxDiff_this
 
     # Sample RHN energies from spectrum
-    samples_generated, spectrum_generated = generate_samples_from_spectrum(spectrum_R, num_samples)
+    samples_generated, _ = generate_samples_from_spectrum(spectrum_R, num_samples)
     
     # For each RHN, sample decay kinematics
     Els = []

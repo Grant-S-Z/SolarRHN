@@ -50,18 +50,18 @@ def RHN_Gamma_vll(MH, U2):
 
     xl = m_electron / MH
 
-    L = math.log(
-        (1.0 - 3 * xl**2 - (1 - xl**2) * math.sqrt(1.0 - 4.0 * xl**2))
-        / (xl**2 * (1.0 + math.sqrt(1.0 - 4.0 * xl**2)))
+    L = np.log(
+        (1.0 - 3 * xl**2 - (1 - xl**2) * np.sqrt(1.0 - 4.0 * xl**2))
+        / (xl**2 * (1.0 + np.sqrt(1.0 - 4.0 * xl**2)))
     )
 
     hfactor = (C1 * (1.0 - 1.0) + C3 * 1.0) * (
         (1.0 - 14 * xl**2 - 2.0 * pow(xl, 4) - 12.0 * pow(xl, 6))
-        * math.sqrt(1.0 - 4.0 * xl**2)
+        * np.sqrt(1.0 - 4.0 * xl**2)
         + 12.0 * pow(xl, 4) * (pow(xl, 4) - 1) * L
     ) + 4 * (C2 * (1 - 1) + C4 * 1) * (
         xl**2 * (2 + 10 * xl**2 - 12 * pow(xl, 4)) *
-        math.sqrt(1.0 - 4.0 * xl**2)
+        np.sqrt(1.0 - 4.0 * xl**2)
         + 6 * pow(xl, 4) * (1 - 2 * xl**2 + 2 * pow(xl, 4)) * L
     )
 
@@ -135,8 +135,8 @@ def getRHNSpectrum(spectrum_L, MH, U2):
     
     Parameters
     ----------
-    spectrum_L : ndarray
-        Left-handed neutrino spectrum, shape (N, 2): [energy, flux]
+    spectrum_L : ndarray (N, 2) [energy, flux]
+        Left-handed neutrino spectrum
     MH : float
         RHN mass in MeV
     U2 : float
@@ -239,6 +239,54 @@ def getDecayedRHNSpectrum(spectrum_orig, MH, U2, distance, length):
     return np.array(spectrum_decayed)
 
 
+def getDecayedRHNSpectrum_vll(spectrum_orig, MH, U2, distance, length):
+    """Calculate decayed RHN spectrum to e⁺e⁻ at given distance.
+    
+    Parameters
+    ----------
+    spectrum_orig : ndarray (N, 2)
+        Original RHN spectrum
+    MH : float
+        RHN mass in MeV
+    U2 : float
+        Mixing parameter squared
+    distance : float
+        Distance from sun to decay point in meters
+    length : float
+        Length of detector in meters
+    
+    Returns
+    -------
+    ndarray (N, 2)
+        Decayed RHN spectrum to e⁺e⁻
+    """
+    energy = spectrum_orig[:, 0]
+    flux_orig = spectrum_orig[:, 1]
+    BR_vll = RHN_BR_vll(MH, U2)
+
+    spectrum_decayed = []
+    for ie in range(len(energy)):
+        EH = energy[ie]
+        if EH <= MH:
+            spectrum_decayed.append([EH, 0.0])
+        else:
+            tau_cm = RHN_TauCM(MH, U2)
+            PH = math.sqrt(EH * EH - MH * MH)
+            beta = PH / EH
+            tau_f = MH * distance / (EH * beta * speed_of_light)
+            delta_tau = MH * length / (EH * beta * speed_of_light)
+            spectrum_decayed.append(
+                [
+                    EH,
+                    flux_orig[ie]
+                    * BR_vll
+                    * math.exp(-1.0 * tau_f / tau_cm)
+                    * (1.0 - math.exp(-1.0 * delta_tau / tau_cm)),
+                ]
+            )
+    return np.array(spectrum_decayed)
+
+
 def findRatioForDistance(MH, EH, U2, distance):
     """Find decay ratio at given distance.
     
@@ -332,6 +380,7 @@ __all__ = [
     'getRHNSpectrum',
     'getRHNSpectrums',
     'getDecayedRHNSpectrum',
+    'getDecayedRHNSpectrum_vll',
     'findRatioForDistance',
     'findDistanceForRatio',
     'findRatioForDistanceSpectrum',

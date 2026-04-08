@@ -1,14 +1,12 @@
 """
-Utility tools for Solar RHN calculations.
-
 This module provides helper functions and decorators for:
-- Performance monitoring (timing decorators)
+- Performance monitoring
 - Debugging utilities
-- General-purpose tools
 """
 
 from functools import wraps
 from time import time
+from tqdm import tqdm
 
 
 def timer(func):
@@ -48,4 +46,22 @@ def timer(func):
     return wrapper_timer
 
 
-__all__ = ['timer']
+def tqdmer(default_total=None, default_desc=None, default_unit="it"):
+    """Wrap a generator function so iteration shows a tqdm progress bar.
+
+    Usage:
+        @tqdmer("Processing", "evt")
+        def gen(...):
+            for x in iterable: yield x
+        for x in gen(..., total=N, desc="Custom", unit="item"): ...
+    """
+    def deco(func):
+        @wraps(func)
+        def wrapped(*args, **kwargs):
+            total = kwargs.pop("total", default_total)
+            desc = kwargs.pop("desc", default_desc)
+            unit = kwargs.pop("unit", default_unit)
+            iterable = func(*args, **kwargs)
+            return tqdm(iterable, total=total, desc=desc, unit=unit)
+        return wrapped
+    return deco

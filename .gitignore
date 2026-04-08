@@ -9,6 +9,8 @@ plots/
 plots_*/
 plots_grid_scan/
 plots_original/
+*.png
+img/
 
 # Data directories
 backup/
@@ -20,3 +22,17 @@ solar/
 
 # Paper
 paper/
+paperfig/
+
+# TeX
+_minted/
+*.pdf
+*.gz
+*.tex
+*.sty
+
+# Else
+*.json
+*.ipynb
+eca/
+auto/

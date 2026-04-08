@@ -12,6 +12,7 @@ import numpy as np
 import math
 import os
 import pandas as pd
+from tqdm import tqdm
 from .neutrino_electron_scattering import scatter_electron_spectrum, bin_mid_array
 from .tools import timer
 from ploter import (
@@ -36,10 +37,9 @@ else:
             return func
         return decorator
 
-
-# Helper function used in getNulEAndAngleFromRHNDecay
-def getNulEAndAngleFromRHNDecay(spectrum_orig, MH, U2, distance, length, costheta_bins, use_vectorized=True):
-    """Calculate neutrino energy and angular distributions from RHN decay.
+# @timer
+def getNulEAndAngleFromRHNDecay(spectrum_orig, MH, U2, distance, length, costheta_bins, use_vectorized=True) -> tuple:
+    """Calculate neutrino energy and angular distributions from RHN decay in scenario 2.
     
     This function is the core physics engine that computes how neutrinos from
     RHN decay are distributed in energy and angle, accounting for:
@@ -50,7 +50,7 @@ def getNulEAndAngleFromRHNDecay(spectrum_orig, MH, U2, distance, length, costhet
     
     Parameters
     ----------
-    spectrum_orig : NDArray
+    spectrum_orig : NDArray (N, 2)
         RHN spectrum (energy vs flux)
     MH : float
         RHN mass (MeV)
@@ -71,6 +71,11 @@ def getNulEAndAngleFromRHNDecay(spectrum_orig, MH, U2, distance, length, costhet
         (diff_El_decayed, diff_costheta_decayed, diff_cosphi_decayed,
          diff_El_costheta_decayed, diff_El_cosphi_decayed)
         All distributions normalized to match 1D and 2D integrals
+        - diff_El_decayed: (N, 2) array of energy vs flux
+        - diff_costheta_decayed: (M, 2) array of costheta vs flux
+        - diff_cosphi_decayed: (M, 2) array of cosphi vs flux
+        - diff_El_costheta_decayed: (N, M, 3) array of energy, costheta, flux
+        - diff_El_cosphi_decayed: (N, M, 3) array of energy, cosphi, flux
     """
     energy = spectrum_orig[:, 0]
     flux_orig = spectrum_orig[:, 1]
@@ -174,11 +179,6 @@ def getNulEAndAngleFromRHNDecay(spectrum_orig, MH, U2, distance, length, costhet
                     transform_phi_to_theta(costheta_bins[i], distance_m) 
                     for i in range(npoints_costheta)
                 ])
-                
-                # Create energy mesh grid for vectorized computation
-                # Shape: (n_energy, n_angle)
-                energy_grid = energy[:, np.newaxis]  # (n_energy, 1)
-                cosphi_grid = costheta_bins[np.newaxis, :]  # (1, n_angle)
                 
                 # Vectorized computation of diff_El_costheta_lab for all (E, cosphi) pairs
                 # This replaces the double loop over ieL and icosphi
@@ -471,13 +471,13 @@ def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='.
     nsteps_earth = 100
     distance_step = distance_SE * 1.0 / nsteps_earth
     
-    for istep in range(nsteps_earth):
+    for istep in tqdm(range(nsteps_earth), desc="Decaying inside Earth orbit", unit="step"):
         (
             diff_El_this,
             diff_costheta_this,
             diff_cosphi_this,
             diff_El_costheta_this,
-            diff_El_cosphi_this
+            _
         ) = getNulEAndAngleFromRHNDecay(
             spectrum_R,
             MH,
@@ -486,19 +486,19 @@ def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='.
             distance_step,
             costheta_arr,
         )
-        print(
-            "decay inside earth orbit, distance =",
-            "%.2f" % (istep * 1.0 * distance_step / distance_SE),
-            "(SE), istep",
-            istep + 1,
-            "/",
-            nsteps_earth,
-            f", decayed flux = {integrateSpectrum(diff_El_this):.2f}"
-            # integrateSpectrum(diff_costheta_this),
-            # integrateSpectrum(diff_cosphi_this),
-            # integrateSpectrum2D(diff_El_costheta_this),
-            # integrateSpectrum2D(diff_El_cosphi_this)
-        )
+        # print(
+        #     "decay inside earth orbit, distance =",
+        #     "%.2f" % (istep * 1.0 * distance_step / distance_SE),
+        #     "(SE), istep",
+        #     istep + 1,
+        #     "/",
+        #     nsteps_earth,
+        #     f", decayed flux = {integrateSpectrum(diff_El_this):.2f}"
+        #     # integrateSpectrum(diff_costheta_this),
+        #     # integrateSpectrum(diff_cosphi_this),
+        #     # integrateSpectrum2D(diff_El_costheta_this),
+        #     # integrateSpectrum2D(diff_El_cosphi_this)
+        # )
         for ie in range(len(energy)):
             diff_El_decayed[ie][1] += diff_El_this[ie][1]
             diff_El_decayed_inside[ie][1] += diff_El_this[ie][1]
@@ -751,7 +751,7 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
             print(f"Angle {ia+1}/{n_in_angles}, cosθ={costheta_nu[ia]:.3f} - completed")
     else:
         # Sequential processing (original)
-        for ia in range(n_in_angles):
+        for ia in tqdm(range(n_in_angles), desc="Processing incoming angles", unit="cosine ratio"):
             flux_2d = diff_El_costheta_decayed[:, ia, 2]
             
             if np.all(flux_2d == 0):
@@ -762,7 +762,7 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
             flux_target = resample_bin_average(energy_src, flux_2d, energy_target)
             
             # Call scatter function (now returns 8 values)
-            print(f"  Angle {ia+1}/{n_in_angles}, cosθ={costheta_nu[ia]:.3f}.", end=' ')
+            # print(f"  Angle {ia+1}/{n_in_angles}, cosθ={costheta_nu[ia]:.3f}.", end=' ')
             try:
                 (s2d_rad, s2d_costheta, s_e, s_a_rad, s_a_costheta,
                  e_b, a_b_rad, a_b_costheta) = scatter_electron_spectrum(
@@ -816,14 +816,14 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
     n_phi = nA_scatter * 4  # 200 samples for φ ∈ [0, 2π]
     phi_samples = np.linspace(0, 2*np.pi, n_phi, endpoint=False)
     
-    for ia in range(n_in_angles):
+    for ia in tqdm(range(n_in_angles), desc="Azimuthal sampling for mapping", unit="cosine ratio"):
         if spectra_list[ia] is None or np.all(spectra_list[ia] == 0):
             continue
         
         cos_theta_in = costheta_nu[ia]
         sin_theta_in = np.sqrt(1 - cos_theta_in**2)
         
-        print(f"  Processing incoming angle {ia+1}/{n_in_angles}, cosθ_in={cos_theta_in:.3f}")
+        # print(f"  Processing incoming angle {ia+1}/{n_in_angles}, cosθ_in={cos_theta_in:.3f}")
         
         # Vectorize: pre-compute all scatter angles at once
         cos_theta_s = np.cos(theta_s_centers)  # shape: (nA_scatter,)
@@ -835,7 +835,7 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
         
         # cos(θ_lab) for all (ia_s, phi) combinations
         # shape: (nA_scatter, n_phi)
-        cos_theta_lab_all = (
+        cos_theta_lab_all = -(
             cos_theta_in * cos_theta_s[:, None] 
             - sin_theta_in * sin_theta_s[:, None] * cos_phi[None, :]
         )

@@ -1,12 +1,11 @@
 """
 Physical constants used in Solar RHN calculations.
 """
-
-import math
 import numpy as np
 
 # Mathematical constant
 pi = 3.141592653
+na = 6.02e23
 
 # Fundamental constants
 GFermi = 1.1663787e-11  # Fermi constant, MeV^-2
@@ -24,18 +23,36 @@ gR_e = sw2  # Right-handed coupling (e)
 gL_mu = -0.5 + sw2  # Left-handed coupling (μ)
 gR_mu = sw2  # Right-handed coupling (μ)
 
+
 # Astronomical constants
 distance_SE = 1.4960e11  # Sun-Earth distance, meters
 speed_of_light = 299792458.0  # Speed of light, m/s
 
-# Neutrino-electron scattering detector parameters
-Ne = 1.673e32  # Number of electrons in detector
-sig0_es = 88.083e-46  # Baseline cross section
+
+# Detector parameters
+mass = 5e8 # 500t, gram
+# mass = 1e8 # 100t (Borexino)
+Ne = na * mass / 18 * 10 # number of electrons in detector
+sig0_es = 88.083e-46  # baseline cross section
 Q0 = 0.862  # Reference Q value
-RunTime = 365 * 24 * 60 * 60  # One year in seconds
+# volume = 500.0 # Detector volume in cubic meters
+
+exposure_time = 365.0 * 24.0 * 3600.0  # 365d, second
+# exposure_time = 1000.0 * 24.0 * 3600.0 # Borexino 1000d
+
+# detector_size = pow(volume, 1.0/3.0) # meters
+# S = pow(detector_size * 100.0, 2)  # cm^2
+
+detector_radius = 5.0  # meters
+# detector_radius = 3.02 # Borexino FV radius cut
+
+S = pi * pow(detector_radius * 100.0, 2)  # cm²
+exposure = S * exposure_time  # cm²·s
+attenuation_length = 4 / 3 * detector_radius
+
 
 # Integration and binning parameters for neutrino-electron scattering
-N_int = 100000  # Number of integration steps
+N_int = 100000
 Ntime = 1e4  # Number of time steps
 osci_mode = 1  # Oscillation mode (1=on, 0=off)
 bin_width = 0.2  # Energy bin width (MeV)
@@ -52,8 +69,10 @@ __all__ = [
     # Astronomical constants
     'distance_SE', 'speed_of_light',
     # Detector parameters
-    'Ne', 'sig0_es', 'Q0', 'RunTime',
+    'Ne', 'sig0_es', 'Q0',
     # Integration and binning
     'N_int', 'Ntime', 'osci_mode', 'bin_width', 'max_energy',
     'n_bins', 'bin_array', 'bin_mid_array',
+    # Detector parameters
+    'exposure_time', 'detector_radius', 'S', 'exposure', 'attenuation_length',
 ]

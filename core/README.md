@@ -4,7 +4,7 @@ The `core/` package contains modular, well-organized physics calculations for So
 
 ## Module Organization
 
-```
+```text
 core/
 ├── __init__.py                         # Package initialization, exports all public functions
 ├── constants.py                        # Physical constants (π, GF, me, ℏ, s2w, etc.)
@@ -21,6 +21,7 @@ core/
 ## Usage
 
 ### Import Everything
+
 ```python
 from core import *
 ```
@@ -28,6 +29,7 @@ from core import *
 This imports all functions while maintaining clean namespaces.
 
 ### Import Specific Modules
+
 ```python
 from core.constants import pi, GFermi, m_electron
 from core.rhn_physics import RHN_TauCM, getRHNSpectrum
@@ -69,14 +71,18 @@ RHN decay physics:
 - `findDistanceForRatio(MH, EH, U2, ratio)`: Distance for target decay fraction
 
 ### transformations.py
+
 Coordinate transformations:
+
 - `cms_to_lab(El, costheta, MH, EH)`: Lorentz boost CMS → lab
 - `lab_to_cms(El, costheta, MH, EH)`: Lorentz boost lab → CMS
 - `transform_phi_to_theta(cosphi, distance)`: Sun-Earth frame → lab frame
 - `transform_theta_to_phi(costheta, distance)`: Lab frame → Sun-Earth frame
 
 ### decay_distributions.py
+
 Differential distributions:
+
 - `diff_lambda(x, y, z)`: Phase space helper function
 - `diff_El_costheta_cms(El, costheta, MH, EH)`: 2D distribution in CMS
 - `diff_El_costheta_lab(El, costheta, MH, EH)`: 2D distribution in lab (with Jacobian)
@@ -85,27 +91,35 @@ Differential distributions:
 - `diff_Eee(Eee, MH, EH)`: e⁺e⁻ pair energy distribution
 
 ### spectrum_utils.py
+
 Spectrum operations:
+
 - `interpolateSpectrum(inputCSV, xvalues)`: Interpolate from CSV
 - `integrateSpectrum(spectrum)`: 1D trapezoidal integration
 - `integrateSpectrum2D(data, ...)`: 2D integration with bin-aware algorithm
 - `saveSpectrums(spectrums, column_names, fileName, labels)`: Save multiple spectra
 
 ### electron_scattering.py
+
 Main physics calculations:
+
 - `getNulEAndAngleFromRHNDecay(...)`: Core decay-in-flight calculation
 - `get_and_save_nuL_El_costheta_decay_in_flight(...)`: Complete neutrino distributions
 - `get_and_save_nuL_scatter_electron_El_costheta(...)`: Electron scattering with **azimuthal sampling** (12 φ points)
 - `get_and_save_nuL_scatter_electron_El_costheta_from_csv(...)`: Process saved neutrino CSV
 
 **Key Feature**: Azimuthal angle sampling for accurate angle mapping:
+
 ```
 cos(θ_lab) = cos(θ_in)·cos(θ_s) - sin(θ_in)·sin(θ_s)·cos(φ)
 ```
+
 Samples 12 azimuthal angles φ ∈ [0, 2π) for each (incoming angle, scatter angle) pair.
 
 ### neutrino_electron_scattering.py
+
 Core ν-e elastic scattering physics (from solar.py):
+
 - `scatter_electron_spectrum(energy, flux, ...)`: Compute 2D electron spectrum (energy × angle)
 - `mswlma(energy)`: MSW-LMA oscillation probability P(νₑ → νₑ)
 - `cal_Tmax(q)`: Maximum electron recoil energy
@@ -114,7 +128,9 @@ Core ν-e elastic scattering physics (from solar.py):
 - Binning parameters: `bin_width`, `max_energy`, `bin_array`, `bin_mid_array`
 
 ### sampling.py
+
 Monte Carlo sampling algorithms:
+
 - `rejection_sampling_2Dfunc(f, ...)`: 2D rejection sampling
 - `rejection_sampling_1Dfunc(f, ...)`: 1D rejection sampling
 - `generate_samples_from_spectrum(spectrum, ...)`: Sample from histogram
@@ -126,6 +142,7 @@ Monte Carlo sampling algorithms:
 Utility tools for development and debugging:
 
 - `timer`: Decorator to measure and print function execution time
+
   ```python
   @timer
   def my_function():
@@ -138,6 +155,7 @@ Utility tools for development and debugging:
 
 The original `utils.py` file remains unchanged. All existing scripts continue to work.
 The new `core/` package provides:
+
 - ✓ Better organization
 - ✓ Clear separation of concerns
 - ✓ Easier testing and debugging
@@ -147,20 +165,26 @@ The new `core/` package provides:
 ## Key Physics Features
 
 ### Normalization Strategy
+
 2D distributions are stored as densities (per unit energy per unit angle).
 Integration uses bin widths automatically:
+
 ```python
 ∫∫ ρ(E,θ) dE dθ = Σ ρ[i,j] × ΔE[i] × Δθ[j]
 ```
+
 Normalization uses **simple sum** (not weighted) in denominator for consistency.
 
 ### Angle Mapping Improvements
+
 1. **Jacobian transformation**: Proper dcosphi/dcostheta for φ ↔ θ conversion
 2. **Direct evaluation**: Compute distribution at cosphi_needed, not via Jacobian bins
 3. **Azimuthal sampling**: 12 φ points for accurate 3D → 2D projection
 
 ### Decay-in-Flight Integration
+
 Divides Sun-Earth path into:
+
 - 100 steps inside Earth orbit (distance < 1 AU)
 - Adaptive steps outside Earth orbit (based on decay fraction)
 
@@ -169,6 +193,7 @@ Each step accumulates contributions to 2D and 1D distributions.
 ## Testing
 
 To verify the refactoring didn't break anything:
+
 ```python
 # Old way (still works)
 from utils import *
@@ -182,6 +207,7 @@ from core import *
 ## Future Improvements
 
 Potential enhancements:
+
 - [ ] Add type hints throughout
 - [ ] Create unit tests for each module
 - [ ] Parallelize batch processing

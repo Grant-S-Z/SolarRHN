@@ -1,0 +1,297 @@
+#+OPTIONS: H:2 num:t toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS: TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+LATEX_CLASS: beamer
+#+LATEX_HEADER: \usepackage{etoolbox}
+#+LATEX_HEADER: \usepackage{pgfopts}
+#+LATEX_HEADER: \usepackage{booktabs}
+#+LATEX_HEADER: \usepackage[scale=2]{ccicons}
+#+LATEX_HEADER: \usepackage{minted}
+#+LATEX_HEADER: \setminted{frame=none, baselinestretch=1.1, fontsize=\small, bgcolor=ts-light!20!white, rulecolor=tsinghua!70!black, framerule=0.8pt}
+#+LATEX_HEADER: \usetheme[block=fill, progressbar=frametitle]{metropolis}
+#+LATEX_HEADER: \useoutertheme{infolines} % infoline
+#+LATEX_HEADER: \useinnertheme{default}
+#+LATEX_HEADER: \usecolortheme{custom} % use custom color theme
+#+LATEX_HEADER: \setbeamertemplate{blocks}[rounded][shadow=false]
+#+LATEX_HEADER: \setbeamertemplate{items}[circle] % circle item symbol
+#+LATEX_HEADER: \setbeamertemplate{sections/subsections in toc}[ball]
+#+LATEX_HEADER: \setbeamertemplate{headline}[default] % no infoline headline
+#+LATEX_HEADER: \setbeamertemplate{frame numbering}[none]
+#+LATEX_HEADER: \setbeamertemplate{bibliography item}[text] % text references
+#+LATEX_HEADER: \usetikzlibrary{arrows.meta, positioning, angles, quotes}
+#+TITLE: SolarRHN
+#+AUTHOR: Yutao Zhu
+#+DATE: \today
+* 理论过程
+** 物理过程
+#+begin_export latex
+\begin{figure}[!htbp]
+  \centering
+\begin{tikzpicture}[
+    node distance=2cm,
+    block/.style={circle, fill=yellow, minimum size=10pt, inner sep=0pt},
+    detector/.style={circle, draw, minimum size=4cm},
+    decay/.style={circle, fill=red, inner sep=1.2pt},
+    line/.style={draw, -stealth},
+    dline/.style={draw, dashed, -stealth, thick}
+    ]
+
+
+% planet and detector
+\node[block, label=below:Sun] (sun) {};
+\node[detector, right=4cm of sun, label=below:Detector] (detector) {};
+\node[decay, below right of=sun, yshift=-0.5cm, xshift=2cm] (v2) {};
+\node[decay, below of=detector, yshift=1cm] (v3) {};
+
+\draw[line] (sun) to
+    node[pos=0.5,above] {$\nu_H$} 
+    coordinate [pos=1.0] (v1) ([yshift=1cm]detector.center);
+\node[above of=sun, font=\small, align=center] (Scenario1) {Scenario 1};
+    
+\path [line] (sun) -- node[below left] {$\nu_H$} (v2);
+\path [line, red] (v2) -- node[below right, pos=0.25] {$\nu_e$} (v3);
+
+\node[below of=sun, font=\small, align=center] (Scenario2) {Scenario 2};
+    
+% generation
+\node[decay] at (v1) {};
+\draw[line, red] (v1) -- ++(30:2cm) node[right] {$\nu_e$};
+\draw[line, blue] (v1) -- ++(-30:1cm) node[right] {$e^-$};
+\draw[line, blue] (v1) -- ++(-60:1cm) node[left] {$e^+$};
+\draw[line, blue] (v3) -- ++(30:1cm) node[right] {$e^-$};
+
+\end{tikzpicture}
+\caption{\label{fig:twoScenarios} Two scenarios for neutrino propagation: direct detection of $\nu_H$ from the Sun (Scenario 1) and detection of $\nu_e$ after $\nu_H$ decays en route (Scenario 2).}
+\end{figure}
+#+end_export
+
+** 右手中微子能谱
+右手中微子（RHN）由太阳中微子（SN）混合产生，其通量[fn:1]：
+\[\Phi(E_{\nu_{H}}) = |U_{eH}|^2 \sqrt{1 - (\frac{m_{\nu_H}}{E_{\nu_H}})}\Phi_{^8 \mathrm{B}}(E_{\nu})\]
+
+#+attr_latex: :width 0.5\textwidth
+#+caption: Energy spectra of RHNs (SNs) emitted from \(\ce{^{8}B}\) decay
+[[./img/ER/RHN_spectrum_U1.0_log.pdf]]
+
+** 右手中微子寿命与分支比
+衰变宽度与寿命：
+\begin{align*}
+\Gamma^{\mathrm{total}}_{\mathrm{c.m.}} &= \Gamma^{\nu\nu\nu}_{\mathrm{c.m.}} + \Gamma^{\nu ll}_{\mathrm{c.m.}}\\
+&=\frac{G_F^2}{192\pi^3}m^5_{\nu_H}|U_{eH}|^2\left[1 + h\left(\frac{m_e^2}{m_{\nu_H}^2}\right)\right]\\
+\tau_{\mathrm{c.m.}} &= 1 / \Gamma^{\mathrm{total}}_{\mathrm{c.m.}} 
+\end{align*}
+这里 \(\nu\nu\nu\) 和 \(\nu ll\) 是右手中微子衰变的两个分支。对于 MeV 量级的太阳中微子，只存在 \(3\nu_{e}\) 和 \(\nu_{e} e^{+}e^{-}\) 两种衰变模式[fn:2]。
+** 右手中微子寿命与分支比
+*** L :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+attr_latex: :width \textwidth
+#+caption: Lifetime of RHNs
+[[./img/LT/RHN_lifetime_contourf.pdf]]
+
+*** R :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+attr_latex: :width \textwidth
+#+caption: \(\nu_e e^+ e^-\) ratio, independent of \(|U_{eH}|^{2}\)
+[[./img/BR/RHN_branch_ratio_vll.pdf]]
+
+** 右手中微子衰变截面
+衰变截面：
+\[\frac{\mathrm{d}\Gamma_{\mathrm{c.m.}}}{\mathrm{d}E\mathrm{d}\cos\theta} = \Gamma^{\mathrm{total}}_{{\mathrm{c.m.}}}(f_{1}+\xi|\vec{P}|f_{S}\cos\theta),\]
+其中 \(E\) 和 \(\theta\) 是 \(\nu_e\) 在质心系中的能量和散射角，\(f_1\) 和 \(f_S\) 是关于 \(m_{\nu_H}\) 和 \(E\) 的函数，\(|\vec{P}|\approx\beta\) 表示 \(\nu_H\) 的偏振率。对于 \(\nu_{H}(\bar{\nu}_{H})\), \(\xi = +1(-1)\).
+
+衰变后正负电子夹角[fn:3]：
+\[\cos\alpha = \frac{2m_{e}^{2}+E_{e^{+}}E_{e^{-}}-m_{\nu_{H}}^{2}-2E_{H}E_{\nu}-2\sqrt{E_{H}^{2}-m_{H}^{2}}\cos\theta}{p_{e^{+}}p_{e^{-}}}\]
+
+** 衰变左手中微子能谱
+*** L :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: LHN (\(\nu_e\)) energy (lab) by integration
+[[~/research/solarRHN/backup/plots_original/nuLSpectrum_U1.0_AllMass_linXlogY.pdf]]
+*** R :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: LHN energy by sampling
+[[~/research/solarrhn_re/img/ElDistribution(lab).pdf]]
+
+** 衰变左手中微子散射角分布
+#+attr_latex: :width 0.7\textwidth
+#+caption: LHN cosine
+[[~/research/solarRHN/backup/plots_original/nuLEmissionAngle_U1.0_AllMass_linXlogY.pdf]]
+
+** 中微子与电子散射截面
+对一个初始能量为 \(q\) 的中微子，产生能量为 \(T\) 的反冲电子的散射截面：
+\[\frac{\mathrm{d}\sigma}{\mathrm{d}T} = \sigma_e [g^2_L + g^2_R(1-T/q)^2 - g_L g_R (T/q^2)],\]
+其中
+\begin{align*}
+g_L &= (\pm 1/2 + \sin^2 \theta_W),\quad g_R = \sin^2 \theta_W \approx 0.23\\
+\sigma_e &= 2G_F^2 m_e^2 / \pi\hbar^4 = \qty{88.083e-46}{cm^2}
+\end{align*}
+
+# Unit: \(\unit{GeV^{-2}}\)
+
+* ToyMC 模拟结果
+** S1: 衰变电子能量分布
+*** L :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: \(e^+ e^-\) counts (500t 1yr)
+[[./img/Eee/EeeCountJNE_contour_linXlogYlogZ.png]]
+*** R :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: \(e^+ e^-\) counts (500t 1yr, \(|U_{eH}|^2 =10^{-5}\))
+[[~/research/solarRHN/backup/plots/EeeSpectrum_decay_in_detector_integrate_U1e-05_AllMass_linXlinY.pdf]]
+
+
+** S2: 衰变左手中微子能谱
+*** L :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: Energy of \(\nu_e\) from \(\nu_H\) decay in flight
+[[~/research/SolarRHN/backup/plots_original/DecayInFlightNuLEnergy_U0.1_AllMass_linXlinY.pdf]]
+*** R :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: Energy of \(\nu_e\) from \(\nu_H\) decay in flight
+[[~/research/solarrhn_re/img/LHDetectorSpectrum_lin(U2=0.1, MH=6.0).pdf]]
+*** Remark
+模拟时一次衰变对应一个 \(\nu_{e}\)，考虑到 \(\nu\nu\nu\) 分支的存在，实际计数应该略多。
+
+** S2: 衰变左手中微子太阳角分布
+*** L :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: Solar angle cosine of \(\nu_e\) from \(\nu_H\) decay in flight
+[[./img/SA/DecayNuLCosThetaRatio_contour_linXlogYlogZ.pdf]]
+*** R :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: Solar angle cosine ratio for \((\cos\theta_{\text{Sun}} > 0.9) / \text{all}\)
+[[./img/SA/DecayInFlightNuLCosthetaSun_U0.1_M4.0_InsideOutside_linXlogY.pdf]]
+
+** S2: 散射电子分布
+*** L :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: \(\nu_e\)-electron event rate
+[[./img/S2Ee/DecayNuLEee_contour_linXlogYlogZ.pdf]]
+*** R :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: Electron counts
+[[./plots_grid_scan_s2/U2_1.00e-01_MH_4.0/electron_2d_U2_1.00e-01_MH_4.0_linear.pdf]]
+** S2: 散射电子分布
+#+attr_latex: :width 0.7\textwidth
+#+caption: Electron counts (energy and solar angle cosine)
+[[./plots_grid_scan_s2/U2_1.00e-01_MH_4.0/electron_2d_U2_1.00e-01_MH_4.0_rt.pdf]]
+* MG5 模拟结果及对比验证
+** COMMENT 右手中微子衰变夹角
+使用 MadGraph 模拟 RHN 衰变电子夹角:
+#+begin_src text
+  import model SM_HeavyN_Dirac_LO
+  generate e+ e- > n1 ve~
+  output HNL
+  launch HNL
+#+end_src
+- 通过设置 =ebeam= 能量限制 RHN 能量
+- 通过设置 =madspin_card.dat= 限定 \(\nu_{H}\rightarrow\nu_{e}e^{+}e^{-}\) 衰变
+  #+begin_src text
+  set spinmode onshell
+  decay n1 > ve e+ e-
+  launch
+  #+end_src
+
+** 右手中微子衰变电子夹角
+使用 MadGraph 模拟 RHN 衰变电子夹角。先产生静止 RHN 衰变事例：
+#+begin_src text
+  import model SM_HeavyN_Dirac_LO
+  generate n1 > e+ e- ve~
+  output HNL
+#+end_src
+
+然后调整
+- =param_card.dat=: 设置 ~mN1~ 和 ~VeN1~.
+- =run_card.dat=: 设置 ~nevents~, 将 ~ebeam~ 相关置 0.
+
+最后对产生的事例，通过 RHN 能谱抽样，赋予对应质心系动量并 boost 到对应实验室系。
+
+后续结果均针对 \(m_{\nu_{H}} =\qty{10}{MeV}, |U_{eH}|^{2} = 10^{-5}\) 情形。
+
+** 右手中微子衰变电子对夹角分布
+*** L :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: \(e^{+}e^{-}\) angle (lab) by MG5
+[[./img/MG/rhn_decay_ee_cosine_distribution.pdf]]
+*** R :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: \(e^+ e^{-}\) angle (cms) by MG5
+[[./img/MG/opening_angle.pdf]]
+** 右手中微子衰变电子对夹角与能量分布
+#+attr_latex: :width 0.7\textwidth
+#+caption: \(e^+ e^-\) counts (energy and included angle cosine)
+[[./img/run_03/plots/rhn_decay_ee_energy_cosine_heatmap.pdf]]
+** 对比：电子对能量分布
+*** L :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: \(e^{+}e^{-}\) energy by MG5
+[[./img/MG/rhn_decay_ee_energy_distribution.pdf]]
+*** R :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: \(e^{+}e^{-}\) energy by integration
+[[~/research/solarRHN/backup/plots/EeeSpectrum_decay_in_detector_integrate_U1e-05_M10.0_linXlinY.pdf]]
+** 对比：LHN 能量分布
+*** L :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: LHN energy by MG5
+[[./img/MG/rhn_decay_ve_energy_distribution.pdf]]
+*** R :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: LHN energy by integration
+[[~/research/SolarRHN/backup/plots_original/nuLSpectrum_U1.0_M10.0_linXlinY.pdf]]
+
+** 对比：LHN 角度分布
+*** L :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: LHN cosine by MG5
+[[./img/MG/rhn_decay_ve_cosine_distribution.pdf]]
+*** R :BMCOL:
+:PROPERTIES:
+:BEAMER_col: 0.5
+:END:
+#+caption: LHN cosine by integration
+[[~/research/SolarRHN/backup/plots_original/nuLEmissionAngle_U1.0_M10.0_linXlinY.pdf]]
+* Footnotes
+
+[fn:3]https://doi.org/10.48550/arXiv.2506.04099, 但无法通过该公式直接得到\(e^{+}e^{-}\)夹角分布。
+ 
+[fn:2]也存在\(\nu_{L}\gamma\), 但衰变宽度很小，故忽略。
+
+[fn:1]仅考虑 \(\ce{^{8}B}\) 太阳中微子，下同。

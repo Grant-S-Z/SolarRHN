@@ -205,6 +205,29 @@ def compute_decay_distributions_numba(
     
     This replaces the innermost loops in getNulEAndAngleFromRHNDecay
     for 5-10x speedup.
+
+    Parameters
+    ----------
+    energy : np.ndarray
+        1D array of energy bins (MeV).
+    flux_orig : np.ndarray
+        2D array of original flux [0]: energy bins, [1]: flux values.
+    costheta_bins : np.ndarray
+        1D array of costheta bins.
+    MH : float
+        Heavy neutrino mass (MeV).
+    U2 : float
+        Mixing angle squared.
+    distance : float
+        Distance from source to detector (m).
+    length : float
+        Length of the detector (m).
+    distance_SE : float
+        Distance from Sun to Earth (m).
+    m_e : float
+        Electron mass (MeV).
+    speed_of_light : float
+        Speed of light (m/s).
     
     Returns
     -------

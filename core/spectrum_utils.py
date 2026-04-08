@@ -20,7 +20,7 @@ def interpolateSpectrum(inputCSV, xvalues):
     
     Returns
     -------
-    NDArray
+    NDArray (N, 2)
         2D array with shape (len(xvalues), 2) containing [energy, flux]
     """
     df = pd.read_csv(inputCSV)
@@ -43,8 +43,8 @@ def integrateSpectrum(spectrum):
     
     Parameters
     ----------
-    spectrum : NDArray
-        2D array with shape (N, 2) containing [x, y] values
+    spectrum : NDArray (N, 2)
+        2D array with shape (N, 2) containing [energy, flux] values
     
     Returns
     -------

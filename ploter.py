@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import pandas as pd
+
 
 def plot_El_costheta_map(diff_El_costheta, outpath, filename="El_costheta.png", cmap="viridis", 
                          costheta_min=None, costheta_max=None, title_prefix="", 
@@ -76,42 +76,34 @@ def _plot_2d_map_single(diff_El_costheta, outpath, filename, cmap,
     # Use filtered X for plotting
     X = X_filtered
 
-    # Create meshgrid for pcolormesh: need X and Y bin edges (approximate by midpoints)
-    if len(X) > 1:
-        x_edges = np.concatenate(([X[0] - (X[1] - X[0]) / 2.0], (X[:-1] + X[1:]) / 2.0, [X[-1] + (X[-1] - X[-2]) / 2.0]))
-    else:
-        x_edges = np.array([X[0] - 0.5, X[0] + 0.5])
-
-    if len(Y_sub) > 1:
-        y_edges = np.concatenate(([Y_sub[0] - (Y_sub[1] - Y_sub[0]) / 2.0], (Y_sub[:-1] + Y_sub[1:]) / 2.0, [Y_sub[-1] + (Y_sub[-1] - Y_sub[-2]) / 2.0]))
-    else:
-        y_edges = np.array([Y_sub[0] - 0.5, Y_sub[0] + 0.5])
+    # Create meshgrid for contourf
+    XX, YY = np.meshgrid(X, Y_sub, indexing='ij')
+    Z_plot = Z_sub
 
     plt.figure(figsize=(8, 6))
     
     # Apply log scale if requested
     if log_scale:
         from matplotlib.colors import LogNorm
-        Z_plot = Z_sub.T
         # Handle zeros/negatives for log scale
         Z_plot = np.where(Z_plot > 0, Z_plot, np.nan)
         vmin_use = vmin if vmin is not None else np.nanmin(Z_plot[Z_plot > 0]) if np.any(Z_plot > 0) else 1e-10
         vmax_use = vmax if vmax is not None else np.nanmax(Z_plot)
-        pcm = plt.pcolormesh(x_edges, y_edges, Z_plot, cmap=cmap, norm=LogNorm(vmin=vmin_use, vmax=vmax_use))
+        cf = plt.contourf(XX, YY, Z_plot, levels=20, cmap=cmap, norm=LogNorm(vmin=vmin_use, vmax=vmax_use))
     else:
         vmin_use = vmin if vmin is not None else None
         vmax_use = vmax if vmax is not None else None
-        pcm = plt.pcolormesh(x_edges, y_edges, Z_sub.T, cmap=cmap, vmin=vmin_use, vmax=vmax_use)
+        cf = plt.contourf(XX, YY, Z_plot, levels=20, cmap=cmap, vmin=vmin_use, vmax=vmax_use)
     
-    plt.colorbar(pcm, label="Flux density" + (" (log scale)" if log_scale else ""))
+    plt.colorbar(cf, label="Flux density" + (" (log scale)" if log_scale else ""))
     plt.xlabel("Energy (MeV)")
-    plt.ylabel("cos(θ)")
-    title = title_prefix if title_prefix else "Energy vs cos(θ)"
-    if costheta_min is not None or costheta_max is not None:
-        cmin_val = costheta_min if costheta_min is not None else Y_sub.min()
-        cmax_val = costheta_max if costheta_max is not None else Y_sub.max()
-        title += f" [cos(θ): {cmin_val:.2f},{cmax_val:.2f}]"
-    plt.title(title)
+    plt.ylabel(r"cos$\theta$")
+    # title = title_prefix if title_prefix else "Energy vs cos(θ)"
+    # if costheta_min is not None or costheta_max is not None:
+    #     cmin_val = costheta_min if costheta_min is not None else Y_sub.min()
+    #     cmax_val = costheta_max if costheta_max is not None else Y_sub.max()
+    #     title += f" [cos(θ): {cmin_val:.2f},{cmax_val:.2f}]"
+    # plt.title(title)
     plt.tight_layout()
     plt.ylim(Y_sub.min(), Y_sub.max())
     # ensure outpath exists and join cleanly
@@ -218,7 +210,7 @@ def _plot_1d_energy_single(diff_El, outpath, filename, title_prefix,
 
 
 def plot_1d_angle_distribution(diff_costheta, outpath, filename="angle_1d.png", 
-                               title_prefix="", xlabel="cos(θ)", ylabel="Flux",
+                               title_prefix="", xlabel=r"cos$\theta$", ylabel="Flux",
                                logx=None, logy=None, xlim=None, ylim=None,
                                costheta_min=None, costheta_max=None):
     """Plot 1D angle distribution.
@@ -309,12 +301,12 @@ def _plot_1d_angle_single(diff_costheta, outpath, filename, title_prefix,
     
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    title = title_prefix if title_prefix else "Angular Distribution"
-    if costheta_min is not None or costheta_max is not None:
-        cmin_val = costheta_min if costheta_min is not None else costheta_filtered.min()
-        cmax_val = costheta_max if costheta_max is not None else costheta_filtered.max()
-        title += f" [cos(θ): {cmin_val:.2f},{cmax_val:.2f}]"
-    plt.title(title)
+    # title = title_prefix if title_prefix else "Angular Distribution"
+    # if costheta_min is not None or costheta_max is not None:
+    #     cmin_val = costheta_min if costheta_min is not None else costheta_filtered.min()
+    #     cmax_val = costheta_max if costheta_max is not None else costheta_filtered.max()
+    #     title += f" [cos(θ): {cmin_val:.2f},{cmax_val:.2f}]"
+    # plt.title(title)
     plt.grid(True, alpha=0.3)
     
     if xlim is not None:

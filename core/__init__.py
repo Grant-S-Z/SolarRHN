@@ -14,15 +14,19 @@ from .spectrum_utils import *
 from .neutrino_electron_scattering import *
 from .decay_and_scattering import *
 from .sampling import *
+from .stats import *
 from .tools import *
 
 __all__ = [
     # Constants
     'pi', 'GFermi', 'm_electron', 'hbar', 's2w', 'distance_SE', 'speed_of_light',
+
+    # Detector parameters
+    'exposure_time', 'detector_radius', 'S', 'exposure', 'attenuation_length',
     
     # RHN physics
     'RHN_Gamma_vvv', 'RHN_Gamma_vll', 'RHN_TauCM', 'RHN_BR_vll', 'RHN_TauF',
-    'getRHNSpectrum', 'getRHNSpectrums', 'getDecayedRHNSpectrum',
+    'getRHNSpectrum', 'getRHNSpectrums', 'getDecayedRHNSpectrum', 'getDecayedRHNSpectrum_vll',
     'findRatioForDistance', 'findDistanceForRatio', 'findRatioForDistanceSpectrum',
     
     # Transformations
@@ -30,16 +34,16 @@ __all__ = [
     
     # Decay distributions
     'diff_lambda', 'diff_El_costheta_cms', 'diff_El_costheta_lab',
-    'diff_El_costheta_lab_wrong', 'diff_costheta', 'diff_El', 'diff_Eee',
+    'diff_costheta', 'diff_El', 'diff_Eee',
     'getNulEAndAngleFromRHNDecay', 'get_and_save_nuL_El_costheta_decay_in_flight',
     
     # Spectrum utilities
     'interpolateSpectrum', 'integrateSpectrum', 'integrateSpectrum2D',
     'saveSpectrums',
     
-    # Neutrino-electron scattering (from solar.py)
+    # Neutrino-electron scattering
     'sw2', 'gL_e', 'gR_e', 'gL_mu', 'gR_mu', 'me',
-    'Ne', 'sig0_es', 'Q0', 'RunTime',
+    # 'Ne', 'sig0_es', 'Q0',
     'N_int', 'Ntime', 'osci_mode', 'bin_width', 'max_energy',
     'n_bins', 'bin_array', 'bin_mid_array',
     'cal_Tmax', 'cal_costheta', 'mswlma',
@@ -54,6 +58,12 @@ __all__ = [
     'rejection_sampling_2Dfunc', 'rejection_sampling_1Dfunc',
     'generate_samples_from_spectrum', 'getMaximumValue2D',
     'getNuLEAndAngleBySampling',
+
+    # Statistical analysis
+    'apply_energy_resolution_convolution',
+    'apply_angle_resolution_convolution',
+    'chi2_poisson_likelihood_ratio',
+    'chi2_pearson',
     
     # Utility tools
     'timer',

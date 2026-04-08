@@ -279,18 +279,18 @@ def _diff_El_costheta_lab_numba(Elp, costhetap, MH, EH, m_e):
     return diff_cms * Jacob
 
 
-def diff_El_costheta_lab_wrong(El, costheta, MH, EH):
-    """Legacy incorrect implementation (kept for reference).
+# def diff_El_costheta_lab_wrong(El, costheta, MH, EH):
+#     """Legacy incorrect implementation (kept for reference).
     
-    This version does not properly account for the Jacobian.
-    Use diff_El_costheta_lab instead.
-    """
-    if costheta > 1.0 or costheta < -1.0:
-        return 0.0
+#     This version does not properly account for the Jacobian.
+#     Use diff_El_costheta_lab instead.
+#     """
+#     if costheta > 1.0 or costheta < -1.0:
+#         return 0.0
 
-    El_p, costheta_p = lab_to_cms(El, costheta, MH, EH)
+#     El_p, costheta_p = lab_to_cms(El, costheta, MH, EH)
 
-    return diff_El_costheta_cms(El_p, costheta_p, MH, EH)
+#     return diff_El_costheta_cms(El_p, costheta_p, MH, EH)
 
 
 def diff_costheta(costheta, MH, EH):
@@ -374,8 +374,13 @@ def diff_Eee(Eee, MH, EH):
     float
         dN/dEee
     """
+    if Eee < 2.0 * m_electron or Eee > EH:
+        return 0.0
+    
     El = EH - Eee
     return diff_El(El, MH, EH)
+
+# def diff_Cee(Eee)
 
 
 __all__ = [
@@ -383,7 +388,6 @@ __all__ = [
     'diff_lambda',
     'diff_El_costheta_cms',
     'diff_El_costheta_lab',
-    'diff_El_costheta_lab_wrong',
     'diff_costheta',
     'diff_El',
     'diff_Eee',

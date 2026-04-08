@@ -16,7 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from .constants import (
     pi, sw2, gL_e, gR_e, gL_mu, gR_mu, me,
-    Ne, sig0_es, Q0, RunTime,
+    Ne, sig0_es, Q0,
     N_int, Ntime, osci_mode, bin_width, max_energy,
     n_bins, bin_array, bin_mid_array
 )
@@ -72,7 +72,10 @@ def cal_costheta(T, q):
     float or array
         cos(θ_scatter)
     """
-    return math.sqrt((T * (0.511 + q) * (0.511 + q)) / ((T + 2 * 0.511) * q * q))
+    # Use np.sqrt and add safety for division by zero or negative T
+    # den = (T + 2 * 0.511) * q * q
+    # result = (T * (0.511 + q) * (0.511 + q)) / den
+    return np.sqrt(np.maximum(0, (T * (0.511 + q) * (0.511 + q)) / np.maximum(1e-18, (T + 2 * 0.511) * q * q)))
 
 
 def mswlma(energy):
@@ -119,6 +122,8 @@ def _scatter_core_numba(centers, flux, bw, Nint, n_energy_bins, n_angle_bins,
     _me = 0.511
     _gL_e = 0.5 + 0.23
     _gR_e = 0.23
+    _gL_mu = -0.5 + 0.23  # Muon/tau left-handed coupling
+    _gR_mu = 0.23         # Muon/tau right-handed coupling
     _sig0_es = 88.083e-46
     _Ne = 1.673e32
     
@@ -137,6 +142,10 @@ def _scatter_core_numba(centers, flux, bw, Nint, n_energy_bins, n_angle_bins,
     for i in range(n_loop):
         ienergy = centers[i]
         
+        # Skip zero energy to avoid division by zero
+        if ienergy <= 0:
+            continue
+
         # Apply MSW oscillation probability (inlined)
         if osci_on:
             ksi = 0.203 * A * (1 - sin13) * ienergy * ps / 100
@@ -149,13 +158,15 @@ def _scatter_core_numba(centers, flux, bw, Nint, n_energy_bins, n_angle_bins,
         Tmax = 2.0 * ienergy * ienergy / (_me + 2.0 * ienergy)
         iflux = flux[i]
         iflux_e = pee * iflux
+        iflux_mu = (1.0 - pee) * iflux  # mu and tau component
         
         # Integrate over recoil electron energies
         for j in range(Nint):
             T = Tmax / Nint * (j + 0.5)
             
-            # Differential cross section
-            sig = (
+            # === Electron neutrino scattering ===
+            # Differential cross section for electron neutrino
+            sig_e = (
                 _sig0_es / _me * (
                     _gL_e * _gL_e
                     + _gR_e * _gR_e * (1 - T / ienergy) * (1 - T / ienergy)
@@ -163,9 +174,23 @@ def _scatter_core_numba(centers, flux, bw, Nint, n_energy_bins, n_angle_bins,
                 )
             )
             
-            # Event rate
-            event = sig * _Ne * iflux_e
-            event_in_bin = event * Tmax / Nint * bw
+            # Event rate for electron neutrino
+            event_e = sig_e * _Ne * iflux_e
+            event_in_bin = event_e * Tmax / Nint * bw
+            
+            # === Muon/Tau neutrino scattering ===
+            # Differential cross section for muon/tau neutrino
+            sig_mu = (
+                _sig0_es * (
+                    _gL_mu * _gL_mu
+                    + _gR_mu * _gR_mu * (1 - T / ienergy) * (1 - T / ienergy)
+                    - _gL_mu * _gR_mu * T / (ienergy * ienergy)
+                )
+            )
+            
+            # Event rate for muon/tau neutrino
+            event_mu = sig_mu * _Ne * iflux_mu
+            event_in_bin += event_mu * Tmax / Nint * bw  # Add mu/tau contribution
             
             # Calculate scattering angle
             cosine = math.sqrt((T * (_me + ienergy) * (_me + ienergy)) / ((T + 2 * _me) * ienergy * ienergy))
@@ -243,6 +268,10 @@ def _scatter_core_numpy(centers, flux, bw, Nint, n_energy_bins, n_angle_bins,
     for i in range(n_loop):
         ienergy = centers[i]
         
+        # Skip zero energy to avoid division by zero
+        if ienergy <= 0:
+            continue
+
         # Apply MSW oscillation probability
         if osci_on:
             pee = mswlma(ienergy)
@@ -252,13 +281,14 @@ def _scatter_core_numpy(centers, flux, bw, Nint, n_energy_bins, n_angle_bins,
         Tmax = cal_Tmax(ienergy)
         iflux = flux[i]
         iflux_e = pee * iflux
+        iflux_mu = (1.0 - pee) * iflux  # mu and tau component
         
         # Integrate over recoil electron energies
         for j in range(Nint):
             T = Tmax / Nint * (j + 0.5)
             
-            # Differential cross section
-            sig = (
+            # === Electron neutrino scattering ===
+            sig_e = (
                 sig0_es / me * (
                     gL_e * gL_e
                     + gR_e * gR_e * (1 - T / ienergy) * (1 - T / ienergy)
@@ -266,8 +296,20 @@ def _scatter_core_numpy(centers, flux, bw, Nint, n_energy_bins, n_angle_bins,
                 )
             )
             
-            event = sig * Ne * iflux_e
-            event_in_bin = event * Tmax / Nint * bw
+            event_e = sig_e * Ne * iflux_e
+            event_in_bin = event_e * Tmax / Nint * bw
+            
+            # === Muon/Tau neutrino scattering ===
+            sig_mu = (
+                sig0_es * (
+                    gL_mu * gL_mu
+                    + gR_mu * gR_mu * (1 - T / ienergy) * (1 - T / ienergy)
+                    - gL_mu * gR_mu * T / (ienergy * ienergy)
+                )
+            )
+            
+            event_mu = sig_mu * Ne * iflux_mu
+            event_in_bin += event_mu * Tmax / Nint * bw  # Add mu/tau contribution
             
             # Convert to scattering angle
             cosine = cal_costheta(T, ienergy)
@@ -321,7 +363,7 @@ def _scatter_core_numpy(centers, flux, bw, Nint, n_energy_bins, n_angle_bins,
     return spectrum_2d, spectrum_energy, spectrum_angle
 
 
-def scatter_electron_spectrum(energy, flux, *, energy_centers=None, bin_width_local=None, N_int_local=None, use_numba=True):
+def scatter_electron_spectrum(energy, flux, *, energy_centers=None, bin_width_local=None, N_int_local=None, target_energy_centers=None, use_numba=True):
     """Calculate electron spectrum from neutrino-electron scattering.
 
     This function computes the 2D distribution of recoil electrons
@@ -354,6 +396,9 @@ def scatter_electron_spectrum(energy, flux, *, energy_centers=None, bin_width_lo
     N_int_local : int, optional
         Number of integration steps per energy bin.
         If None, uses module-level `N_int`.
+    target_energy_centers : array-like, optional
+        Target energy centers used to interpolate output spectra after the
+        simulation is completed. If None, return native internal energy bins.
     use_numba : bool, optional
         Whether to use Numba JIT compilation for speedup.
         If None, auto-detect (use if available).
@@ -387,7 +432,7 @@ def scatter_electron_spectrum(energy, flux, *, energy_centers=None, bin_width_lo
     5. Transform to cosθ space with Jacobian |sin(θ)|
     
     The total event rate includes:
-    - Cross section × number of target electrons × flux × bin width × runtime
+    - Cross section × number of target electrons × flux × bin width × exposure_time
     
     The cosθ distribution is computed from rad distribution using:
     - Jacobian factor: |d(cosθ)/dθ| = |sin(θ)|
@@ -398,10 +443,13 @@ def scatter_electron_spectrum(energy, flux, *, energy_centers=None, bin_width_lo
     - Additional ~10ms for cosθ conversion (negligible)
     """
     # Determine parameters with fallbacks
+    # Ensure they are 1D arrays to avoid Numba/NumPy broadcasting issues in loops
     if energy_centers is None:
-        centers = np.asarray(energy)
+        centers = np.asarray(energy).ravel()
     else:
-        centers = np.asarray(energy_centers)
+        centers = np.asarray(energy_centers).ravel()
+    
+    flux = np.asarray(flux).ravel()
 
     bw = bin_width_local if bin_width_local is not None else bin_width
     Nint = int(N_int_local) if N_int_local is not None else int(N_int)
@@ -414,11 +462,12 @@ def scatter_electron_spectrum(energy, flux, *, energy_centers=None, bin_width_lo
         use_numba = False
 
     total_flux = np.sum(flux) * bw
-    print(f"Total incoming neutrino flux: {total_flux:.4e}")
+    # print(f"Total incoming neutrino flux: {total_flux:.4e}")
 
     # Define output energy and angle bins
-    n_energy_bins = 100
-    energy_bins = np.linspace(0, max_energy, n_energy_bins + 1)
+    # Match old solar.C resolution: 160 bins for 0-16 MeV
+    n_energy_bins = 160
+    energy_bins = np.linspace(0, 16.0, n_energy_bins + 1)
 
     # Define angle bins - use uniform in rad space (like C++ original)
     n_angle_bins = 200  # Increased from 100 to further reduce binning artifacts
@@ -473,6 +522,57 @@ def scatter_electron_spectrum(energy, flux, *, energy_centers=None, bin_width_lo
     if total_costheta > 0:
         spectrum_2d_costheta *= (total_rad / total_costheta)
         spectrum_angle_costheta *= (np.sum(spectrum_angle_rad) / np.sum(spectrum_angle_costheta))
+
+    # Post-processing interpolation to a target energy grid.
+    # This preserves the simulation internals and only remaps final outputs.
+    if target_energy_centers is None:
+        target_energy_centers = energy + 0.5 * (energy[1] - energy[0])  # Use input energy as centers if not provided
+
+    target_energy_centers = np.asarray(target_energy_centers, dtype=float).ravel()
+    if target_energy_centers.ndim != 1 or target_energy_centers.size < 2:
+        raise ValueError("target_energy_centers must be a 1D array with at least 2 points")
+    if np.any(np.diff(target_energy_centers) <= 0):
+        raise ValueError("target_energy_centers must be strictly increasing")
+
+    source_energy_centers = 0.5 * (energy_bins[:-1] + energy_bins[1:])
+
+    spectrum_energy = np.interp(
+        target_energy_centers,
+        source_energy_centers,
+        spectrum_energy,
+        left=0.0,
+        right=0.0,
+    )
+
+    n_target = target_energy_centers.size
+    spectrum_2d_rad_interp = np.zeros((n_target, n_angle_bins))
+    spectrum_2d_costheta_interp = np.zeros((n_target, n_angle_bins))
+
+    for ia in range(n_angle_bins):
+        spectrum_2d_rad_interp[:, ia] = np.interp(
+            target_energy_centers,
+            source_energy_centers,
+            spectrum_2d_rad[:, ia],
+            left=0.0,
+            right=0.0,
+        )
+        spectrum_2d_costheta_interp[:, ia] = np.interp(
+            target_energy_centers,
+            source_energy_centers,
+            spectrum_2d_costheta[:, ia],
+            left=0.0,
+            right=0.0,
+        )
+
+    spectrum_2d_rad = spectrum_2d_rad_interp
+    spectrum_2d_costheta = spectrum_2d_costheta_interp
+
+    # Rebuild edges from target centers for downstream plotting/consistency.
+    target_energy_edges = np.zeros(n_target + 1)
+    target_energy_edges[1:-1] = 0.5 * (target_energy_centers[:-1] + target_energy_centers[1:])
+    target_energy_edges[0] = target_energy_centers[0] - 0.5 * (target_energy_centers[1] - target_energy_centers[0])
+    target_energy_edges[-1] = target_energy_centers[-1] + 0.5 * (target_energy_centers[-1] - target_energy_centers[-2])
+    energy_bins = target_energy_edges
     
     # Return both distributions
     return (spectrum_2d_rad, spectrum_2d_costheta, spectrum_energy,
