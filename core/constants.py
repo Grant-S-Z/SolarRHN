@@ -29,23 +29,23 @@ distance_SE = 1.4960e11  # Sun-Earth distance, meters
 speed_of_light = 299792458.0  # Speed of light, m/s
 
 
-# Detector parameters
-mass = 5e8 # 500t, gram
-# mass = 1e8 # 100t (Borexino)
+# TODO: Detector parameters
+boolBorexino = False
+if boolBorexino:
+    print(">>> Using Borexino parameters")
+    mass = 1e8 # 100t (Borexino)
+    # exposure_time = 1000.0 * 24.0 * 3600.0 # 1000d (Borexino Eee simulation)
+    exposure_time = 446.2 * 24.0 * 3600.0 # 446.2d (Borexino experiment)
+    detector_radius = 3.02 # FV radius (Borexino)
+else:
+    # print(">>> Using 500t parameters")
+    mass = 5e8 # 500t, gram
+    exposure_time = 365.0 * 24.0 * 3600.0  # 365d, second
+    detector_radius = 5.0  # meters
+
 Ne = na * mass / 18 * 10 # number of electrons in detector
 sig0_es = 88.083e-46  # baseline cross section
 Q0 = 0.862  # Reference Q value
-# volume = 500.0 # Detector volume in cubic meters
-
-exposure_time = 365.0 * 24.0 * 3600.0  # 365d, second
-# exposure_time = 1000.0 * 24.0 * 3600.0 # Borexino 1000d
-
-# detector_size = pow(volume, 1.0/3.0) # meters
-# S = pow(detector_size * 100.0, 2)  # cm^2
-
-detector_radius = 5.0  # meters
-# detector_radius = 3.02 # Borexino FV radius cut
-
 S = pi * pow(detector_radius * 100.0, 2)  # cm²
 exposure = S * exposure_time  # cm²·s
 attenuation_length = 4 / 3 * detector_radius
@@ -75,4 +75,6 @@ __all__ = [
     'n_bins', 'bin_array', 'bin_mid_array',
     # Detector parameters
     'exposure_time', 'detector_radius', 'S', 'exposure', 'attenuation_length',
+    # If Borexino
+    'boolBorexino'
 ]

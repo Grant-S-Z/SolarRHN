@@ -1,0 +1,13 @@
+* Code introduction
+- ~borexino_data_fit_pyhf.py~
+  - input: 
+- ~reproduce_borexino_fit.py~
+  - input: Borexino fit data (experiment data, bkg and simulated signal for 8 MeV)
+  - output: fit results (fit, normalized likelihood, likelihood ratio)
+- ~borexino_upper_limit.py~
+  - input: Borexino experiment data and bkg, *my simulated signal*
+  - output: exclusion for comparison
+- ~upper_limit_borexino_bkg.py~: use the same method as Borexino to give expected upper limit, *no experiment data*
+  - input: Borexino bkg and my simulated signal
+  - output: expected upper limit (expected exclusion, expected sensitivity)
+- ~upper_limit.py~:

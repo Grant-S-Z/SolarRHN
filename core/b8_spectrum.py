@@ -26,7 +26,7 @@ class B8Spectrum:
             current_dir = os.path.dirname(os.path.abspath(__file__))
             project_root = os.path.dirname(current_dir)
             data_path = os.path.join(project_root, data_path)
-            
+
         self.data_path = data_path
         self.default_flux_norm = default_flux_norm
         self.energy = None

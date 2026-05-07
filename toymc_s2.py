@@ -12,6 +12,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import multiprocessing as mp
+from tqdm import tqdm
 
 # Import from core package
 from core import interpolateSpectrum
@@ -47,10 +48,10 @@ if __name__ == "__main__":
     
     # Define parameter grids
     # Example: scan over multiple U2 and MH values
-    # U2_values = [0.1, 0.01]  # mixing parameter squared
-    # MH_values = [2.0, 4.0, 6.0, 8.0]  # RHN mass in MeV
-    U2_values = [0.1]
-    MH_values = [4.0]
+    U2_values = [0.1, 0.01]  # mixing parameter squared
+    MH_values = [2.0, 4.0, 6.0, 8.0]  # RHN mass in MeV
+    # U2_values = [0.1]
+    # MH_values = [4.0]
     # U2_values = np.logspace(-5, 0, 6)
     # MH_values = np.linspace(2.0, 12.0, 6)
     
@@ -65,6 +66,7 @@ if __name__ == "__main__":
     # Create output directory
     output_base = "plots_grid_scan_s2"
     os.makedirs(output_base, exist_ok=True)
+    print(f"Output directory: {output_base}")
     
     # Prepare arguments for parallel processing
     args_list = []
@@ -74,16 +76,19 @@ if __name__ == "__main__":
     
     ### Method 2 process
     # Option 1: Sequential processing (easier for debugging)
-    print("Starting Method 2 processing...")
-    results = []
-    for args in args_list:
-        result = process2_single_parameter_set(args)
-        results.append(result)
+    # print("Starting Method 2 processing...")
+    # results = []
+    # for args in args_list:
+    #     result = process2_single_parameter_set(args)
+    #     results.append(result)
     
     # Option 2: Parallel processing (uncomment to use)
-    # print("Starting parallel processing...")
-    # with mp.Pool(processes=4) as pool:
-    #     results = pool.map(process_single_parameter_set, args_list)
+    print("Starting parallel processing...")
+    with mp.Pool(processes=8) as pool:
+        results = list(
+            tqdm(pool.imap(process2_single_parameter_set, args_list),
+                 total=len(args_list), desc="Processing", unit="pt")
+        )
     
     # Save summary results
     print("\n" + "="*60)

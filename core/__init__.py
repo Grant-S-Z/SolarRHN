@@ -19,7 +19,7 @@ from .tools import *
 
 __all__ = [
     # Constants
-    'pi', 'GFermi', 'm_electron', 'hbar', 's2w', 'distance_SE', 'speed_of_light',
+    'pi', 'GFermi', 'm_electron', 'hbar', 's2w', 'distance_SE', 'speed_of_light', 'boolBorexino',
 
     # Detector parameters
     'exposure_time', 'detector_radius', 'S', 'exposure', 'attenuation_length',

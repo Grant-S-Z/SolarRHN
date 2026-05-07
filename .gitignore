@@ -17,8 +17,15 @@ backup/
 output/
 test_output/
 
+# Output
+output*/
+
 # Solar
 solar/
+
+# MG5
+mg5/
+MG5*/
 
 # Paper
 paper/

@@ -374,7 +374,7 @@ def getNulEAndAngleFromRHNDecay(spectrum_orig, MH, U2, distance, length, costhet
     return diff_El_decayed, diff_costheta_decayed, diff_cosphi_decayed, diff_El_costheta_decayed, diff_El_cosphi_decayed
 
 
-@timer
+# @timer
 def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='./output/'):
     """Get decayed left-handed neutrino energy and angle distribution.
 
@@ -400,15 +400,15 @@ def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='.
     NDArray
         3D array (n_energy × n_angle × 3) with neutrino distribution
     """
-    print("\n" + "=" * 70)
-    print("STEP 1: Computing decayed left-handed neutrino flux")
-    print("=" * 70)
-    if HAS_NUMBA:
-        print("✅ Numba JIT compilation enabled (5-10x speedup)")
-    else:
-        print("⚠️  Numba not available - using Python (slower)")
-        print("    Install with: pip install numba")
-    print("=" * 70 + "\n")
+    # print("\n" + "=" * 70)
+    # print("STEP 1: Computing decayed left-handed neutrino flux")
+    # print("=" * 70)
+    # if HAS_NUMBA:
+    #     print("✅ Numba JIT compilation enabled (5-10x speedup)")
+    # else:
+    #     print("⚠️  Numba not available - using Python (slower)")
+    #     print("    Install with: pip install numba")
+    # print("=" * 70 + "\n")
     
     energy = spectrum_L[:, 0]  # energy points
 
@@ -460,9 +460,9 @@ def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='.
         diff_cosphi_decayed_inside[iTh][0] = costheta_arr[iTh]
         diff_cosphi_decayed_outside[iTh][0] = costheta_arr[iTh]
 
-    print("===============================================")
-    print("MH = ", MH, "U2 = ", U2)
-    print("Tau_CM = ", RHN_TauCM(MH, U2))
+    # print("===============================================")
+    # print("MH = ", MH, "U2 = ", U2)
+    # print("Tau_CM = ", RHN_TauCM(MH, U2))
 
     ratio_orbit = findRatioForDistance(MH, E_max_flux, U2, distance_SE)
     
@@ -470,8 +470,8 @@ def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='.
     # first, decay before reaching earth orbit
     nsteps_earth = 100
     distance_step = distance_SE * 1.0 / nsteps_earth
-    
-    for istep in tqdm(range(nsteps_earth), desc="Decaying inside Earth orbit", unit="step"):
+
+    for istep in range(nsteps_earth):
         (
             diff_El_this,
             diff_costheta_this,
@@ -486,6 +486,21 @@ def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='.
             distance_step,
             costheta_arr,
         )
+    # for istep in tqdm(range(nsteps_earth), desc="Decaying inside Earth orbit", unit="step"):
+    #     (
+    #         diff_El_this,
+    #         diff_costheta_this,
+    #         diff_cosphi_this,
+    #         diff_El_costheta_this,
+    #         _
+    #     ) = getNulEAndAngleFromRHNDecay(
+    #         spectrum_R,
+    #         MH,
+    #         U2,
+    #         istep * 1.0 * distance_step,
+    #         distance_step,
+    #         costheta_arr,
+    #     )
         # print(
         #     "decay inside earth orbit, distance =",
         #     "%.2f" % (istep * 1.0 * distance_step / distance_SE),
@@ -517,7 +532,7 @@ def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='.
     ratio_decayed = findRatioForDistanceSpectrum(MH, spectrum_R, U2, distance_start)
     distance_next = findDistanceForRatio(MH, E_max_flux, U2, ratio_orbit + (1 - ratio_orbit) / 10.0)
 
-    print("Ratio decay inside earth orbit: ", ratio_decayed)
+    # print("Ratio decay inside earth orbit: ", ratio_decayed)
 
     while ratio_decayed < 0.999:
         (
@@ -525,7 +540,7 @@ def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='.
             diff_costheta_this,
             diff_cosphi_this,
             diff_El_costheta_this,
-            diff_El_cosphi_this
+            _
         ) = getNulEAndAngleFromRHNDecay(
             spectrum_R,
             MH,
@@ -535,13 +550,13 @@ def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='.
             costheta_arr,
         )
         ratio_decayed = findRatioForDistanceSpectrum(MH, spectrum_R, U2, distance_next)
-        print(
-            "decay outside, distance =",
-            "%.2f" % (distance_start / distance_SE),
-            "(SE), fraction decayed:",
-            "%.3f" % ratio_decayed,
-            f", decayed flux = {integrateSpectrum(diff_El_this):.4f}",
-        )
+        # print(
+        #     "decay outside, distance =",
+        #     "%.2f" % (distance_start / distance_SE),
+        #     "(SE), fraction decayed:",
+        #     "%.3f" % ratio_decayed,
+        #     f", decayed flux = {integrateSpectrum(diff_El_this):.4f}",
+        # )
 
         distance_start = distance_next
         ratio_decayed2 = findRatioForDistance(MH, E_max_flux, U2, distance_next)
@@ -580,7 +595,7 @@ def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='.
         fmt="%0.6e",
         comments="",
     )
-    print("Saved diff_El_costheta_decayed to", out_path)
+    # print("Saved diff_El_costheta_decayed to", out_path)
 
     # Also save the 1D energy and costheta distributions
     filename_el = f"diff_El_M{MH:.1f}_U{U2:.1e}.csv"
@@ -593,7 +608,7 @@ def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='.
         fmt="%0.6e",
         comments="",
     )
-    print("Saved diff_El_decayed to", out_el)
+    # print("Saved diff_El_decayed to", out_el)
 
     filename_ct = f"diff_costheta_M{MH:.1f}_U{U2:.1e}.csv"
     out_ct = os.path.join(savepath, filename_ct)
@@ -605,7 +620,7 @@ def get_and_save_nuL_El_costheta_decay_in_flight(spectrum_L, U2, MH, savepath='.
         fmt="%0.6e",
         comments="",
     )
-    print("Saved diff_costheta_decayed to", out_ct)
+    # print("Saved diff_costheta_decayed to", out_ct)
 
     # return accumulated distributions including 2D map
     return (
@@ -642,6 +657,7 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
     # Extract source axes
     energy_src = diff_El_costheta_decayed[:, 0, 0]
     costheta_nu = diff_El_costheta_decayed[0, :, 1]
+    costheta_step = diff_El_costheta_decayed[0, 1, 1] - diff_El_costheta_decayed[0, 0, 1]
     energy_target = np.array(bin_mid_array)
     
     # Build energy resampling function (bin-conservative)
@@ -674,9 +690,9 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
         return y_tgt
     
     # Step 1: Compute scatter spectrum for each incoming angle
-    print("=" * 60)
-    print("Computing scattered electrons for each incoming angle...")
-    print("=" * 60)
+    # print("=" * 60)
+    # print("Computing scattered electrons for each incoming angle...")
+    # print("=" * 60)
     
     n_in_angles = len(costheta_nu)
     spectra_list = []
@@ -690,7 +706,7 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
         
         def process_angle(ia, energy_src, energy_target, diff_El_costheta_decayed, costheta_nu, N_int_local):
             """Process single incoming angle"""
-            flux_2d = diff_El_costheta_decayed[:, ia, 2]
+            flux_2d = diff_El_costheta_decayed[:, ia, 2] * costheta_step # bin flux
             
             if np.all(flux_2d == 0):
                 return ia, None, None, None
@@ -752,7 +768,7 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
     else:
         # Sequential processing (original)
         for ia in tqdm(range(n_in_angles), desc="Processing incoming angles", unit="cosine ratio"):
-            flux_2d = diff_El_costheta_decayed[:, ia, 2]
+            flux_2d = diff_El_costheta_decayed[:, ia, 2] * costheta_step
             
             if np.all(flux_2d == 0):
                 spectra_list.append(None)
@@ -796,9 +812,9 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
             spectra_list[idx] = np.zeros((nE_out, nA_scatter))
     
     # Step 2: Map scattering angles to lab frame with azimuthal sampling
-    print("\n" + "=" * 60)
-    print("Mapping scatter angles to lab frame (with azimuthal sampling)...")
-    print("=" * 60)
+    # print("\n" + "=" * 60)
+    # print("Mapping scatter angles to lab frame (with azimuthal sampling)...")
+    # print("=" * 60)
     
     # Define lab-frame cosθ bins
     costheta_lab_bins = np.linspace(-1, 1, 51)
@@ -816,7 +832,8 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
     n_phi = nA_scatter * 4  # 200 samples for φ ∈ [0, 2π]
     phi_samples = np.linspace(0, 2*np.pi, n_phi, endpoint=False)
     
-    for ia in tqdm(range(n_in_angles), desc="Azimuthal sampling for mapping", unit="cosine ratio"):
+    # for ia in tqdm(range(n_in_angles), desc="Azimuthal sampling for mapping", unit="cosine ratio"):
+    for ia in range(n_in_angles):
         if spectra_list[ia] is None or np.all(spectra_list[ia] == 0):
             continue
         
@@ -857,9 +874,9 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
     final_spectrum = electron_2d_lab
     
     # Step 3: Save results
-    print("\n" + "=" * 60)
-    print("Saving scattered electron spectrum...")
-    print("=" * 60)
+    # print("\n" + "=" * 60)
+    # print("Saving scattered electron spectrum...")
+    # print("=" * 60)
     
     try:
         os.makedirs(savepath, exist_ok=True)
@@ -873,7 +890,7 @@ def get_and_save_nuL_scatter_electron_El_costheta(diff_El_costheta_decayed, save
         out_path = os.path.join(savepath, "scattered_electrons_2d_lab.csv")
         np.savetxt(out_path, np.array(rows), delimiter=',',
                    header='energy,costheta_lab,value', fmt='%0.6e', comments='')
-        print(f"Saved 2D electron spectrum (lab frame) to {out_path}")
+        # print(f"Saved 2D electron spectrum (lab frame) to {out_path}")
     except Exception as e:
         print(f"Warning: failed to save scattered electron spectrum: {e}")
     

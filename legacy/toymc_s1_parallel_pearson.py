@@ -15,8 +15,8 @@ from pytools.rt_ploter import rt_plot_exclusion_region
 # Plot directory
 ER_plots_path = './plots/ER/'
 
-def compute_mh_point(args):
-    """Compute chi2 and signal for a single (U2, MH) point.
+def compute_mh_point_pearson(args):
+    """Compute Pearson chi2 and signal for a single (U2, MH) point.
     
     Separated as a module-level function for ProcessPoolExecutor compatibility.
     Returns: (imh, MH, chi2_val, S_bin, signal_centers, sum_S_bin)
@@ -38,7 +38,7 @@ def compute_mh_point(args):
 
     S_bin_fit = S_bin[fit_mask]
     B_bin_fit = B_bin[fit_mask]
-    chi2_val = chi2_poisson_likelihood_ratio(S_bin_fit, B_bin_fit)
+    chi2_val = chi2_pearson(S_bin_fit, B_bin_fit)
     sum_S_bin = np.sum(S_bin)
     
     return imh, MH, chi2_val, S_bin, signal_centers, sum_S_bin
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     # ============================================================================
 
     print("="*70)
-    print("SOLAR RHN PARAMETER SCAN (PARALLEL) WITH ENERGY RESOLUTION")
+    print("SOLAR RHN PARAMETER SCAN (PARALLEL) WITH PEARSON χ²")
     print("="*70)
     print()
 
@@ -116,28 +116,29 @@ if __name__ == "__main__":
     # ============================================================================
 
     print("\n" + "="*60)
-    print("PARAMETER SCAN CONFIGURATION (PARALLEL)")
+    print("PARAMETER SCAN CONFIGURATION (PARALLEL WITH PEARSON χ²)")
     print("="*60)
     print(f"U² values: {U2_values}")
     print(f"MH values (MeV): {MH_values}")
     print(f"Total parameter sets: {len(U2_values) * len(MH_values)}")
     print(f"Energy resolution: {100.0 * energy_resolution:.1f}% (Gaussian convolution)")
     print(f"Angular resolution: {angle_resolution_deg:.1f}° (for future implementations)")
+    print(f"χ² method: Pearson (S²/B)")
     print(f"Max workers: {max_workers}")
     print("="*60 + "\n")
 
-    grid_suffix = f"{len(U2_values)}x{len(MH_values)}"
+    grid_suffix = f"{len(U2_values)}x{len(MH_values)}_pearson"
 
     chi2_grid = np.full((len(U2_values), len(MH_values)), np.nan)
 
-    print("Starting parallel computation...")
+    print("Starting parallel computation with Pearson χ²...")
     print()
     
     # Prepare per-U2 computation
     for iu2, U2 in enumerate(tqdm(U2_values, desc="Scan U2", unit="U2", position=0)):
         chi2_results = []
         plt.figure()
-        savedir = f'plots/Eee/'
+        savedir = f'plots/Eee_pearson/'
         os.makedirs(savedir, exist_ok=True)
         
         # Build task list for all MH values at this U2
@@ -149,7 +150,7 @@ if __name__ == "__main__":
         # Parallel computation of all MH points
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
             results = list(tqdm(
-                executor.map(compute_mh_point, compute_tasks),
+                executor.map(compute_mh_point_pearson, compute_tasks),
                 total=len(MH_values),
                 desc=f"Compute @ U2={U2:.1e}",
                 unit="MH",
@@ -166,9 +167,7 @@ if __name__ == "__main__":
             chi2_results.append((MH, chi2_val))
             
             plt.plot(signal_centers,
-                     S_bin, '-', linewidth=2, label=f'MH={MH:.1f} MeV') # no need to divide estep since the original spectrum unit is /MeV
-            # plt.plot(signal_centers,
-            #          S_bin / 10, '-', linewidth=2, label=f'MH={MH:.1f} MeV') # /0.1MeV for Borexino
+                     S_bin, '-', linewidth=2, label=f'MH={MH:.1f} MeV')
         
         # Background counts in detector: bg_counts_per_mev (rate) * exposure_time
         plt.plot(bg_centers, B_bin / estep, 'k--', linewidth=2, label=r'$^8$B ES Background')
@@ -177,14 +176,9 @@ if __name__ == "__main__":
         plt.grid(True)        
         plt.legend()
         plt.xlim(0.0, 16.0)
-        # plt.yscale('log')
-        # plt.ylim(1e-3, 4e0)
         plt.savefig(
-            f'{savedir}decayed_ee_count_U{U2:.1e}.pdf', dpi=300, bbox_inches='tight')
-        # plt.savefig(
-        #     f'{savedir}decayed_ee_count_U{U2:.1e}_Borexino(vll+vvv).pdf', dpi=300, bbox_inches='tight')
+            f'{savedir}decayed_ee_count_U{U2:.1e}_pearson.pdf', dpi=300, bbox_inches='tight')
         plt.close()
-        # print(f"Saved plot: {savedir}decayed_ee_count_U{U2:.1e}.png")
 
     # ============================================================================
     # RESULTS AND OUTPUT
@@ -205,7 +199,7 @@ if __name__ == "__main__":
     header = 'U2 ' + ' '.join([f'MH_{mh:.1f}' for mh in MH_values])
     np.savetxt(chi2_txt_path, chi2_table, header=header)
     print()
-    print(f"Saved chi2 grid to {chi2_npz_path} and {chi2_txt_path}")
+    print(f"Saved Pearson χ² grid to {chi2_npz_path} and {chi2_txt_path}")
 
     # Draw 90% CL exclusion region in (U2, MH) plane using ROOT.
     chi2_crit, excl_path = rt_plot_exclusion_region(
@@ -215,12 +209,12 @@ if __name__ == "__main__":
         file_name=f's1_exclusion_90CL_{grid_suffix}',
         dir='plots/exclusion/',
         cl=0.90,
-        ndof=2,
+        ndof=1,
         xlog=False,
         ylog=True,
         type='pdf',
     )
-    print(f"Saved 90% CL exclusion plot to: {excl_path}")
+    print(f"Saved 90% CL exclusion plot (Pearson χ²) to: {excl_path}")
     print(f"90% CL threshold (chi2_crit, dof=2): {chi2_crit:.6f}")
     
     # Print total elapsed time
