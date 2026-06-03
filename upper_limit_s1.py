@@ -45,19 +45,14 @@ N_U2 = 101
 
 N_WORKERS = 10
 
-if boolBorexino:
-    OUTDIR = "./plots/borexino/upper_limit_new"
-else:
-    OUTDIR = "./plots/upper_limit_new"
+
+OUTDIR = f'./plots/{detector_name}/upper_limit_s1'
 os.makedirs(OUTDIR, exist_ok=True)
 
 
 # ── Background ───────────────────────────────────────────────────────────────
 def load_b8_background():
-    if boolBorexino:
-        f = ur.open("data/solar_borexino.root")
-    else:
-        f = ur.open("data/Solar.root")
+    f = ur.open(f'data/solar_{detector_name}.root')
     h = f["he_es"]
     bg_values = np.asarray(h.values(), dtype=float)
     bg_edges = np.asarray(h.axis().edges(), dtype=float)

@@ -30,18 +30,26 @@ speed_of_light = 299792458.0  # Speed of light, m/s
 
 
 # TODO: Detector parameters
-boolBorexino = False
-if boolBorexino:
+detector_name = 'juno' # borexino, 500t, juno
+
+if detector_name == 'borexino':
     print(">>> Using Borexino parameters")
     mass = 1e8 # 100t (Borexino)
     # exposure_time = 1000.0 * 24.0 * 3600.0 # 1000d (Borexino Eee simulation)
     exposure_time = 446.2 * 24.0 * 3600.0 # 446.2d (Borexino experiment)
-    detector_radius = 3.02 # FV radius (Borexino)
-else:
+    detector_radius = 3.02 # FV radius
+elif detector_name == '500t':
     # print(">>> Using 500t parameters")
     mass = 5e8 # 500t, gram
-    exposure_time = 365.0 * 24.0 * 3600.0  # 365d, second
+    exposure_time = 365.0 * 24.0 * 3600.0  # 365 d, second
     detector_radius = 5.0  # meters
+elif detector_name == 'juno':
+    # mass = 2e10 # 20kt
+    mass = 1.62e10 # 5 MeV FV cut
+    exposure_time = 2.0 * 365.0 * 24.0 * 3600.0 # 2 yr
+    # detector_radius = 17.2 # FV radius
+    detector_radius = 16.5 # FV radius (> 5 MeV)
+
 
 Ne = na * mass / 18 * 10 # number of electrons in detector
 sig0_es = 88.083e-46  # baseline cross section
@@ -76,5 +84,5 @@ __all__ = [
     # Detector parameters
     'exposure_time', 'detector_radius', 'S', 'exposure', 'attenuation_length',
     # If Borexino
-    'boolBorexino'
+    'detector_name'
 ]

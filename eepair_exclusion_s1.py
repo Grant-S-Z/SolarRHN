@@ -12,6 +12,7 @@ from core import (
     getRHNSpectrum,
     interpolateSpectrum,
     integrateSpectrum,
+    detector_name
 )
 from workflows import getNuleeInDetector
 
@@ -132,7 +133,7 @@ def main():
     df_raw = pd.DataFrame(count_grid.T, columns=raw_cols)  # shape (nMh, nU2)
     df_raw.insert(0, "mass_mev", MH_values)
 
-    raw_csv = "data/eepair_signal_count_raw.csv"
+    raw_csv = f"plots/{detector_name}/eepair_signal_count_raw.csv"
     df_raw.to_csv(raw_csv, index=False, float_format="%.10e")
     print(f">>> Saved raw signal counts: {raw_csv}")
     print()
@@ -150,7 +151,7 @@ def main():
     df_corr = pd.DataFrame(corrected_grid.T, columns=raw_cols)
     df_corr.insert(0, "mass_mev", MH_values)
 
-    corr_csv = "data/eepair_signal_count_cut.csv"
+    corr_csv = f"plots/{detector_name}/eepair_signal_count_cut.csv"
     df_corr.to_csv(corr_csv, index=False, float_format="%.10e")
     print(f">>> Saved cut-corrected signal counts: {corr_csv}")
     print()
@@ -159,115 +160,115 @@ def main():
     # PLOT: CUT-CORRECTED 2D DISTRIBUTION (log10 color)
     # ======================================================================
 
-    outdir = "plots/ee_pair/"
-    os.makedirs(outdir, exist_ok=True)
+    # outdir = "plots/ee_pair/"
+    # os.makedirs(outdir, exist_ok=True)
 
-    # Prepare plotting grid (mask zeros)
-    plot_grid = np.where(corrected_grid > 0, corrected_grid, np.nan)
+    # # Prepare plotting grid (mask zeros)
+    # plot_grid = np.where(corrected_grid > 0, corrected_grid, np.nan)
 
-    fig, ax = plt.subplots(figsize=(11, 7))
+    # fig, ax = plt.subplots(figsize=(11, 7))
 
-    # pcolormesh with log norm
-    pcm = ax.pcolormesh(
-        MH_values,
-        U2_values,
-        plot_grid,
-        shading="auto",
-        norm="log",
-        cmap="inferno",
-    )
+    # # pcolormesh with log norm
+    # pcm = ax.pcolormesh(
+    #     MH_values,
+    #     U2_values,
+    #     plot_grid,
+    #     shading="auto",
+    #     norm="log",
+    #     cmap="inferno",
+    # )
 
-    cbar = fig.colorbar(
-        pcm, ax=ax, label=r"Expected e$^+$e$^-$ signal counts (after cuts)"
-    )
+    # cbar = fig.colorbar(
+    #     pcm, ax=ax, label=r"Expected e$^+$e$^-$ signal counts (after cuts)"
+    # )
 
-    ax.set_xlabel(r"$M_H$ [MeV]")
-    ax.set_ylabel(r"$|U_{eH}|^2$")
-    ax.set_yscale("log")
-    ax.set_title(
-        "Solar RHN → e⁺e⁻ in detector (after MG5 boost cuts)"
-    )
+    # ax.set_xlabel(r"$M_H$ [MeV]")
+    # ax.set_ylabel(r"$|U_{eH}|^2$")
+    # ax.set_yscale("log")
+    # ax.set_title(
+    #     "Solar RHN → e⁺e⁻ in detector (after MG5 boost cuts)"
+    # )
 
-    # Contour lines
-    valid = plot_grid[np.isfinite(plot_grid)]
-    if len(valid) > 1:
-        log_min = np.floor(np.log10(valid.min()))
-        log_max = np.ceil(np.log10(valid.max()))
-        if log_max > log_min:
-            levels = np.logspace(log_min, log_max, 10)
-            cs = ax.contour(
-                MH_values,
-                U2_values,
-                plot_grid,
-                levels=levels,
-                colors="white",
-                linewidths=0.6,
-                alpha=0.5,
-            )
-            ax.clabel(cs, inline=True, fontsize=8, fmt="%.1e")
+    # # Contour lines
+    # valid = plot_grid[np.isfinite(plot_grid)]
+    # if len(valid) > 1:
+    #     log_min = np.floor(np.log10(valid.min()))
+    #     log_max = np.ceil(np.log10(valid.max()))
+    #     if log_max > log_min:
+    #         levels = np.logspace(log_min, log_max, 10)
+    #         cs = ax.contour(
+    #             MH_values,
+    #             U2_values,
+    #             plot_grid,
+    #             levels=levels,
+    #             colors="white",
+    #             linewidths=0.6,
+    #             alpha=0.5,
+    #         )
+    #         ax.clabel(cs, inline=True, fontsize=8, fmt="%.1e")
 
-    ax.set_xlim(MH_values[0], MH_values[-1])
-    ax.set_ylim(U2_values[0], U2_values[-1])
+    # ax.set_xlim(MH_values[0], MH_values[-1])
+    # ax.set_ylim(U2_values[0], U2_values[-1])
 
-    fig.tight_layout()
+    # fig.tight_layout()
 
-    plot_pdf = os.path.join(outdir, "eepair_signal_count_cut_2D.pdf")
-    fig.savefig(plot_pdf, dpi=200, bbox_inches="tight")
-    plt.close(fig)
-    print(f">>> Saved plot: {plot_pdf}")
+    # plot_pdf = os.path.join(outdir, "eepair_signal_count_cut_2D.pdf")
+    # fig.savefig(plot_pdf, dpi=200, bbox_inches="tight")
+    # plt.close(fig)
+    # print(f">>> Saved plot: {plot_pdf}")
 
     # ======================================================================
     # ALSO SAVE RAW 2D PLOT FOR COMPARISON
     # ======================================================================
 
-    raw_plot_grid = np.where(count_grid > 0, count_grid, np.nan)
+    # raw_plot_grid = np.where(count_grid > 0, count_grid, np.nan)
 
-    fig2, ax2 = plt.subplots(figsize=(11, 7))
+    # fig2, ax2 = plt.subplots(figsize=(11, 7))
 
-    pcm2 = ax2.pcolormesh(
-        MH_values,
-        U2_values,
-        raw_plot_grid,
-        shading="auto",
-        norm="log",
-        cmap="inferno",
-    )
+    # pcm2 = ax2.pcolormesh(
+    #     MH_values,
+    #     U2_values,
+    #     raw_plot_grid,
+    #     shading="auto",
+    #     norm="log",
+    #     cmap="inferno",
+    # )
 
-    cbar2 = fig2.colorbar(
-        pcm2, ax=ax2, label=r"Expected e$^+$e$^-$ signal counts (raw)"
-    )
+    # cbar2 = fig2.colorbar(
+    #     pcm2, ax=ax2, label=r"Expected e$^+$e$^-$ signal counts (raw)"
+    # )
 
-    ax2.set_xlabel(r"$M_H$ [MeV]")
-    ax2.set_ylabel(r"$|U_{eH}|^2$")
-    ax2.set_yscale("log")
-    ax2.set_title("Solar RHN → e⁺e⁻ in detector (raw, before cuts)")
+    # ax2.set_xlabel(r"$M_H$ [MeV]")
+    # ax2.set_ylabel(r"$|U_{eH}|^2$")
+    # ax2.set_yscale("log")
+    # ax2.set_title("Solar RHN → e⁺e⁻ in detector (raw, before cuts)")
 
-    valid2 = raw_plot_grid[np.isfinite(raw_plot_grid)]
-    if len(valid2) > 1:
-        log_min2 = np.floor(np.log10(valid2.min()))
-        log_max2 = np.ceil(np.log10(valid2.max()))
-        if log_max2 > log_min2:
-            levels2 = np.logspace(log_min2, log_max2, 10)
-            cs2 = ax2.contour(
-                MH_values,
-                U2_values,
-                raw_plot_grid,
-                levels=levels2,
-                colors="white",
-                linewidths=0.6,
-                alpha=0.5,
-            )
-            ax2.clabel(cs2, inline=True, fontsize=8, fmt="%.1e")
+    # valid2 = raw_plot_grid[np.isfinite(raw_plot_grid)]
+    # if len(valid2) > 1:
+    #     log_min2 = np.floor(np.log10(valid2.min()))
+    #     log_max2 = np.ceil(np.log10(valid2.max()))
+    #     if log_max2 > log_min2:
+    #         levels2 = np.logspace(log_min2, log_max2, 10)
+    #         cs2 = ax2.contour(
+    #             MH_values,
+    #             U2_values,
+    #             raw_plot_grid,
+    #             levels=levels2,
+    #             colors="white",
+    #             linewidths=0.6,
+    #             alpha=0.5,
+    #         )
+    #         ax2.clabel(cs2, inline=True, fontsize=8, fmt="%.1e")
 
-    ax2.set_xlim(MH_values[0], MH_values[-1])
-    ax2.set_ylim(U2_values[0], U2_values[-1])
+    # ax2.set_xlim(MH_values[0], MH_values[-1])
+    # ax2.set_ylim(U2_values[0], U2_values[-1])
 
-    fig2.tight_layout()
+    # fig2.tight_layout()
 
-    raw_plot_pdf = os.path.join(outdir, "s1_eepair_signal_count_raw_2D.pdf")
-    fig2.savefig(raw_plot_pdf, dpi=200, bbox_inches="tight")
-    plt.close(fig2)
-    print(f">>> Saved plot: {raw_plot_pdf}")
+    # raw_plot_pdf = os.path.join(outdir, "s1_eepair_signal_count_raw_2D.pdf")
+    # fig2.savefig(raw_plot_pdf, dpi=200, bbox_inches="tight")
+    # plt.close(fig2)
+    # print(f">>> Saved plot: {raw_plot_pdf}")
 
     # ======================================================================
     # TIMING

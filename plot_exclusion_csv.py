@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 from pytools.rt_ploter import rt
+from core import detector_name
 
 
 def _find_u2_at_count_1(mh_vals, u2_vals, count_grid):
@@ -68,7 +69,7 @@ def main():
     # Read eepair signal count CSV and compute count=1 contours
     # ======================================================================
     # eepair_csv = "data/eepair_signal_count_cut.csv"
-    eepair_csv = "data/s1_eepair_signal_count_cut.csv"
+    eepair_csv = f"plots/{detector_name}/eepair_signal_count_cut.csv"
     print(f">>> Reading eepair CSV: {eepair_csv}")
     df_ee = pd.read_csv(eepair_csv)
     mh_ee = df_ee["mass_mev"].values
@@ -85,7 +86,7 @@ def main():
     print()
 
     # Save both contours
-    sens_csv_low = "data/eepair_sensitivity_contour_low.csv"
+    sens_csv_low = f"plots/{detector_name}/eepair_sensitivity_contour_low.csv"
     np.savetxt(
         sens_csv_low,
         np.column_stack([mh_low, u2_low]),
@@ -96,7 +97,7 @@ def main():
     print(f">>> Saved lower sensitivity contour: {sens_csv_low}")
 
     if len(mh_high) > 0:
-        sens_csv_high = "data/eepair_sensitivity_contour_high.csv"
+        sens_csv_high = f"plots/{detector_name}/eepair_sensitivity_contour_high.csv"
         np.savetxt(
             sens_csv_high,
             np.column_stack([mh_high, u2_high]),
@@ -114,7 +115,7 @@ def main():
     # ---- Exclusion band ----
     # excl_csv = "plots/upper_limit_new/upper_limit_bands_lushan.csv"
     # excl_csv = "plots/upper_limit_new/upper_limit_bands_combined.csv"
-    excl_csv = "plots/upper_limit_new/upper_limit_bands.csv"
+    excl_csv = f"plots/{detector_name}/upper_limit_s1/upper_limit_bands.csv"
     print(f">>> Reading exclusion CSV: {excl_csv}")
     data = np.loadtxt(excl_csv, delimiter=",", skiprows=1)
     mh_excl = data[:, 0]
@@ -133,9 +134,10 @@ def main():
     c.SetTopMargin(0.08)
     c.SetLogy(1)
 
-    y_min = 5e-7
-    y_frame = 1e0
-    frame = c.DrawFrame(2.0, y_min, 15.0, y_frame) # plot interval
+    y_min = 1e-6
+    y_frame = 1e-1
+    # y_frame = 1e0
+    frame = c.DrawFrame(2.0, y_min, 15.5, y_frame) # plot interval
     frame.GetXaxis().SetTitle("m_{H}  [MeV]")
     frame.GetYaxis().SetTitle("|U_{eH}|^{2}")
     frame.GetYaxis().SetTitleOffset(1.2)
@@ -220,65 +222,85 @@ def main():
             gr_ref.SetLineStyle(7)
             gr_ref.Draw("L same")
 
-    # ---- eepair count=1 lower boundary ----
-    gr_sens = None
-    if len(mh_low) > 0:
-        gr_sens = rt.TGraph(len(mh_low))
-        for i in range(len(mh_low)):
-            gr_sens.SetPoint(i, mh_low[i], u2_low[i])
-        gr_sens.SetLineColor(rt.kCyan + 2)
-        gr_sens.SetLineWidth(3)
-        gr_sens.SetLineStyle(1)
-        gr_sens.SetMarkerSize(0)
-        gr_sens.Draw("L same")
+    # # ---- eepair count=1 lower boundary ----
+    # gr_sens = None
+    # if len(mh_low) > 0:
+    #     gr_sens = rt.TGraph(len(mh_low))
+    #     for i in range(len(mh_low)):
+    #         gr_sens.SetPoint(i, mh_low[i], u2_low[i])
+    #     gr_sens.SetLineColor(rt.kCyan + 2)
+    #     gr_sens.SetLineWidth(3)
+    #     gr_sens.SetLineStyle(1)
+    #     gr_sens.SetMarkerSize(0)
+    #     gr_sens.Draw("L same")
 
-    # ---- eepair count=1 upper boundary ----
-    if len(mh_high) > 0:
-        gr_sens_high = rt.TGraph(len(mh_high))
-        for i in range(len(mh_high)):
-            gr_sens_high.SetPoint(i, mh_high[i], u2_high[i])
-        gr_sens_high.SetLineColor(rt.kCyan + 2)
-        gr_sens_high.SetLineWidth(3)
-        gr_sens_high.SetLineStyle(1)
-        gr_sens_high.SetMarkerSize(0)
-        gr_sens_high.Draw("L same")
+    # # ---- eepair count=1 upper boundary ----
+    # if len(mh_high) > 0:
+    #     gr_sens_high = rt.TGraph(len(mh_high))
+    #     for i in range(len(mh_high)):
+    #         gr_sens_high.SetPoint(i, mh_high[i], u2_high[i])
+    #     gr_sens_high.SetLineColor(rt.kCyan + 2)
+    #     gr_sens_high.SetLineWidth(3)
+    #     gr_sens_high.SetLineStyle(1)
+    #     gr_sens_high.SetMarkerSize(0)
+    #     gr_sens_high.Draw("L same")
 
-    # ---- Close the red contour on the right side (like the blue band) ----
-    if len(mh_low) > 0 and len(mh_high) > 0:
-        # Find the rightmost MH common to both boundaries
-        common_mh = sorted(set(mh_low) & set(mh_high))
-        if common_mh:
-            mh_right = common_mh[-1]
-            # Get U2 at this MH from both boundaries
-            idx_low = mh_low.index(mh_right)
-            idx_high = mh_high.index(mh_right)
-            u2_right_low = u2_low[idx_low]
-            u2_right_high = u2_high[idx_high]
+    # # ---- Close the red contour on the right side (like the blue band) ----
+    # if len(mh_low) > 0 and len(mh_high) > 0:
+    #     # Find the rightmost MH common to both boundaries
+    #     common_mh = sorted(set(mh_low) & set(mh_high))
+    #     if common_mh:
+    #         mh_right = common_mh[-1]
+    #         # Get U2 at this MH from both boundaries
+    #         idx_low = mh_low.index(mh_right)
+    #         idx_high = mh_high.index(mh_right)
+    #         u2_right_low = u2_low[idx_low]
+    #         u2_right_high = u2_high[idx_high]
 
-            gr_close = rt.TGraph(2)
-            gr_close.SetPoint(0, mh_right, u2_right_low)
-            gr_close.SetPoint(1, mh_right, u2_right_high)
-            gr_close.SetLineColor(rt.kCyan + 2)
-            gr_close.SetLineWidth(3)
-            gr_close.SetLineStyle(1)
-            gr_close.SetMarkerSize(0)
-            gr_close.Draw("L same")
+    #         gr_close = rt.TGraph(2)
+    #         gr_close.SetPoint(0, mh_right, u2_right_low)
+    #         gr_close.SetPoint(1, mh_right, u2_right_high)
+    #         gr_close.SetLineColor(rt.kCyan + 2)
+    #         gr_close.SetLineWidth(3)
+    #         gr_close.SetLineStyle(1)
+    #         gr_close.SetMarkerSize(0)
+    #         gr_close.Draw("L same")
 
     # ---- S2 exclusion (from scattered neutrinos) ----
-    s2_csv = "plots_grid_scan_s2_u2_41_mh_41/s2_upper_limit/s2_expected_exclusion.csv"
-    gr_s2 = None
+    s2_csv = f"plots/{detector_name}/upper_limit_s2/upper_limit_bands_s2.csv"
+    gr_s2_low, gr_s2_high = None, None
     if os.path.exists(s2_csv):
         s2_data = np.loadtxt(s2_csv, delimiter=",", skiprows=1)
         s2_mh = s2_data[:, 0]
-        s2_u2 = s2_data[:, 1]
-        gr_s2 = rt.TGraph(len(s2_mh))
-        for i in range(len(s2_mh)):
-            gr_s2.SetPoint(i, float(s2_mh[i]), float(s2_u2[i]))
-        gr_s2.SetLineColor(rt.kOrange + 7)
-        gr_s2.SetLineWidth(3)
-        gr_s2.SetLineStyle(1)
-        gr_s2.SetMarkerSize(0)
-        gr_s2.Draw("L same")
+        s2_u2_low = s2_data[:, 1]
+        s2_u2_high = s2_data[:, 2] if s2_data.shape[1] >= 3 else np.full_like(s2_u2_low, y_frame)
+
+        s2_valid = s2_u2_low < 1e-1
+        s2_window = s2_valid & (s2_u2_high < 1e-1)
+
+        x_s2 = s2_mh[s2_valid]
+        y_s2 = s2_u2_low[s2_valid]
+        if len(x_s2) > 0:
+            gr_s2_low = rt.TGraph(len(x_s2))
+            for i in range(len(x_s2)):
+                gr_s2_low.SetPoint(i, float(x_s2[i]), float(y_s2[i]))
+            gr_s2_low.SetLineColor(rt.kOrange + 7)
+            gr_s2_low.SetLineWidth(3)
+            gr_s2_low.SetLineStyle(1)
+            gr_s2_low.SetMarkerSize(0)
+            gr_s2_low.Draw("L same")
+
+        x_s2w = s2_mh[s2_window]
+        y_s2w = s2_u2_high[s2_window]
+        if len(x_s2w) > 0:
+            gr_s2_high = rt.TGraph(len(x_s2w))
+            for i in range(len(x_s2w)):
+                gr_s2_high.SetPoint(i, float(x_s2w[i]), float(y_s2w[i]))
+            gr_s2_high.SetLineColor(rt.kOrange + 7)
+            gr_s2_high.SetLineWidth(3)
+            gr_s2_high.SetLineStyle(1)
+            gr_s2_high.SetMarkerSize(0)
+            gr_s2_high.Draw("L same")
     else:
         print(f"  S2 exclusion file not found: {s2_csv}")
 
@@ -290,17 +312,18 @@ def main():
     # leg.SetNColumns(2)
     if gr_ref:
         leg.AddEntry(gr_ref, "Borexino (published)", "l")
-    leg.AddEntry(gr_low, "500t 1yr (e^{+}e^{-} energy)", "l")
-    if gr_sens:
-        leg.AddEntry(gr_sens, "500t 1yr (cos#theta_{e^{+}e^{-}} cut)", "l")
-    if gr_s2:
-        leg.AddEntry(gr_s2, "500t 1yr (decayed #nu)", "l")
+    leg.AddEntry(gr_low, "JUNO 20kt 2yr (S1)", "l")
+    # leg.AddEntry(gr_low, "500t 1yr (e^{+}e^{-} energy)", "l")
+    # if gr_sens:
+    #     leg.AddEntry(gr_sens, "500t 1yr (cos#theta_{e^{+}e^{-}} cut)", "l")
+    if gr_s2_low:
+        leg.AddEntry(gr_s2_low, "JUNO 16.2kt 2yr (S2)", "l")
     leg.Draw()
 
     # ---- Save ----
-    outdir = "plots/upper_limit_new/"
+    outdir = f"plots/{detector_name}/"
     os.makedirs(outdir, exist_ok=True)
-    out_path = os.path.join(outdir, "upper_limit_with_eepair_e.pdf")
+    out_path = os.path.join(outdir, "upper_limit.pdf")
     c.SaveAs(out_path)
     print(f"Saved: {out_path}")
 

@@ -10,10 +10,13 @@ from concurrent.futures import ProcessPoolExecutor
 # Import from core package
 from core import *
 from workflows import *
-from pytools.rt_ploter import rt_plot_exclusion_region
+# from pytools.rt_ploter import rt_plot_exclusion_region
+
+# B8 bkg
+b8_bkg_file = "./data/solar_juno_fv_5mev.root"
 
 # Plot directory
-ER_plots_path = "./plots/ER/"
+ER_plots_path = f"./plots/{detector_name}/ER/"
 
 
 def compute_mh_point(args):
@@ -62,8 +65,8 @@ if __name__ == "__main__":
     energy = np.arange(0.0, 16.0, step=estep)
 
     # Detector and physics parameters
-    # energy_resolution = 0.03
-    energy_resolution = 0.05  # 5% fractional energy resolution (Borexino)
+    energy_resolution = 0.03  # JUNO
+    # energy_resolution = 0.05  # 5% fractional energy resolution (Borexino)
     angle_resolution_deg = 25.0  # Angular resolution in degrees
     chi2_fit_min = 4.8
     chi2_fit_max = 12.8
@@ -96,7 +99,7 @@ if __name__ == "__main__":
     print()
 
     print(">>> Loading background ES spectrum from data/Solar.root...")
-    f_bg: Any = ur.open("data/Solar.root")
+    f_bg: Any = ur.open(b8_bkg_file)
     h_bg: Any = f_bg["he_es"]
     bg_values = np.asarray(h_bg.values())
     bg_edges = np.asarray(h_bg.axis().edges())
@@ -151,7 +154,7 @@ if __name__ == "__main__":
     for iu2, U2 in enumerate(tqdm(U2_values, desc="Scan U2", unit="U2", position=0)):
         chi2_results = []
         plt.figure()
-        savedir = f"plots/Eee/"
+        savedir = f"plots/{detector_name}/Eee/"
         os.makedirs(savedir, exist_ok=True)
 
         # Build task list for all MH values at this U2
@@ -194,50 +197,65 @@ if __name__ == "__main__":
 
             chi2_grid[iu2, imh] = chi2_val
             chi2_results.append((MH, chi2_val))
+            plt.plot(signal_centers, S_bin, "-", linewidth=2, label=f"MH={MH:.1f} MeV")
 
-            if boolBorexino:
-                plt.plot(
-                    signal_centers,
-                    S_bin / 10,
-                    "-",
-                    linewidth=2,
-                    label=f"MH={MH:.1f} MeV",
-                )  # /0.1MeV for Borexino
-            else:
-                plt.plot(
-                    signal_centers, S_bin, "-", linewidth=2, label=f"MH={MH:.1f} MeV"
-                )  # no need to divide estep since the original spectrum unit is /MeV
+            # if boolBorexino:
+            #     plt.plot(
+            #         signal_centers,
+            #         S_bin / 10,
+            #         "-",
+            #         linewidth=2,
+            #         label=f"MH={MH:.1f} MeV",
+            #     )  # /0.1MeV for Borexino
+            # else:
+            #     plt.plot(
+            #         signal_centers, S_bin, "-", linewidth=2, label=f"MH={MH:.1f} MeV"
+            # )  # no need to divide estep since the original spectrum unit is /MeV
 
         # Background counts in detector: bg_counts_per_mev (rate) * exposure_time
 
         plt.xlabel("Energy (MeV)")
-        if boolBorexino:
-            plt.ylabel(r"Counts / 0.1 MeV 1000 d 100 t")
-            plt.yscale("log")
-            plt.ylim(1e-3, 4e0)
+        if detector_name == 'juno':
+            plt.ylabel(r"Counts / MeV / 2 yr / 20 kton")
         else:
             plt.ylabel(r"Counts / MeV / 1 yr / 500 t")
-            plt.plot(
-                bg_centers,
-                B_bin / estep,
-                "k--",
-                linewidth=2,
-                label=r"$^8$B ES Background",
-            )
+        plt.plot(
+            bg_centers,
+            B_bin / estep,
+            "k--",
+            linewidth=2,
+            label=r"$^8$B ES Background",
+        )
+        # if boolBorexino:
+        #     plt.ylabel(r"Counts / 0.1 MeV 1000 d 100 t")
+        #     plt.yscale("log")
+        #     plt.ylim(1e-3, 4e0)
+        # else:
+        #     plt.ylabel(r"Counts / MeV / 1 yr / 500 t")
+        #     plt.plot(
+        #         bg_centers,
+        #         B_bin / estep,
+        #         "k--",
+        #         linewidth=2,
+        #         label=r"$^8$B ES Background",
+        #     )
         plt.grid(True)
         plt.legend()
         plt.xlim(0.0, 16.0)
 
-        if boolBorexino:
-            plt.savefig(
-                f"{savedir}decayed_ee_count_U{U2:.1e}_Borexino(vll+vvv).pdf",
-                dpi=300,
-                bbox_inches="tight",
-            )
-        else:
-            plt.savefig(
-                f"{savedir}decayed_ee_count_U{U2:.1e}.pdf", dpi=300, bbox_inches="tight"
-            )
+        plt.savefig(
+            f"{savedir}decayed_ee_count_U{U2:.1e}.pdf", dpi=300, bbox_inches="tight"
+        )
+        # if boolBorexino:
+        #     plt.savefig(
+        #         f"{savedir}decayed_ee_count_U{U2:.1e}_Borexino(vll+vvv).pdf",
+        #         dpi=300,
+        #         bbox_inches="tight",
+        #     )
+        # else:
+        #     plt.savefig(
+        #         f"{savedir}decayed_ee_count_U{U2:.1e}.pdf", dpi=300, bbox_inches="tight"
+        #     )
 
         plt.close()
         # print(f"Saved plot: {savedir}decayed_ee_count_U{U2:.1e}.png")
